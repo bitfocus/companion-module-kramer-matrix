@@ -224,6 +224,8 @@ instance.prototype.init_tcp = function() {
 				// Decrement the counter now that it responded. Save the config
 				//  if all the requests responded.
 				if (--self.capabilityWaitingResponsesCounter === 0) {
+					// Update the actions now that the new capabilities have been stored.
+					self.actions();
 					self.saveConfig();
 				}
 				break;
@@ -231,19 +233,6 @@ instance.prototype.init_tcp = function() {
 		}
 
 	});
-
-};
-
-
-/**
- * Save this module's config.
- */
-instance.prototype.saveConfig = function() {
-	let self = this;
-
-	// Update the actions and save the config.
-	self.actions();
-	self.system.emit('instance_config_put', self.id, self.config);
 
 };
 
@@ -394,7 +383,7 @@ instance.prototype.actions = function(system) {
 		setups.push({ id:i, label: `Preset ${i}` });
 	}
 
-	self.system.emit('instance_actions', self.id, {
+	self.setActions({
 		'switch_video': {
 			label: 'Switch Video',
 			options: [
