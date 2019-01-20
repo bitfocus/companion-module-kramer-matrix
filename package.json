@@ -1,19 +1,17 @@
 {
-  "name": "kramer-matrix",
-  "version": "1.0.0",
-  "api_version": "1.0.0",
-  "keywords": [
-    "Matrix"
-  ],
-  "manufacturer": "Kramer",
-  "product": "Matrix (Generic)",
-  "shortname": "kramer-matrix",
-  "description": "Module to control a Kramer Matrix",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Steve Therrien <git@stevetherrien.ca>",
-  "homepage": "https://www.kramerav.com/",
-  "license": "MIT"
+	"name": "kramer-matrix",
+	"version": "1.0.0",
+	"api_version": "1.0.0",
+	"keywords": [ "Matrix" ],
+	"manufacturer": "Kramer",
+	"product": "Matrix (Generic)",
+	"shortname": "kramer-matrix",
+	"description": "Module to control a Kramer Matrix",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Steve Therrien <git@stevetherrien.ca>",
+	"homepage": "https://www.kramerav.com/",
+	"license": "MIT"
 }
