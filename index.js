@@ -177,6 +177,8 @@ instance.prototype.init_tcp = function() {
 			resolve();
 		})
 
+	}).catch((err) => {
+		// The error is already logged, but Node requires all rejected promises to be caught.
 	});
 
 	self.socket.on('status_change', (status, message) => {
