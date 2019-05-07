@@ -1,10 +1,10 @@
 # Kramer Matrix
 
-This module lets you to control Kramer Matrices using [Protocol 2000 (PDF)](http://k.kramerav.com/downloads/protocols/protocol_2000_rev0_51.pdf). Newer matrices use Protocol 3000 (which this module doesn't currently support), but there's a good chance your matrix can be configured to switch between Protocol 3000 and Protocol 2000.
+This module lets you to control Kramer Matrices using [Protocol 2000 (PDF)](http://k.kramerav.com/downloads/protocols/protocol_2000_rev0_51.pdf) or [Protocol 3000 (PDF)](https://k.kramerav.com/downloads/protocols/protocol_3000_3.0_master_user.pdf).
 
 
 ## Instance Configuration
-Configure your matrix with an IP address and to use Protocol 2000 (consult your product manual for details). All connections are made over TCP port 5000.
+Configure your matrix with an IP address (consult your product manual for details). All connections are made over port 5000 (TCP).
 
 Enter in the number of inputs, outputs, and presets your matrix supports. The module can auto-detect these settings if you leave those fields empty and apply your changes. Check the log in Companion to confirm the values were correctly detected.
 
@@ -29,10 +29,8 @@ Saves your current inputs and output configuration to a memory preset.
 
 
 ### Delete Preset
-Deletes a stored preset.
+Deletes a stored preset (*not supported on Protocol 3000 matrices*).
 
 
 ### Front Panel
-Allows you to lock or unlock the matrix's front panel.
-
-Note: a locked front panel doesn't stop Companion from controlling the matrix.
+Allows you to lock or unlock the matrix's front panel. A locked front panel doesn't stop Companion from controlling the matrix.

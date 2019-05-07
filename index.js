@@ -40,7 +40,7 @@ function instance(system, id, config) {
 
 	return self;
 
-};
+}
 
 
 /**
@@ -193,48 +193,140 @@ instance.prototype.init_tcp = function() {
 			return;
 		}
 
-		// The response to a command returns the first byte with the second most
-		//  significant bit on. If we turn that second bit off, we can compare the
-		//  first byte of the response to the first byte of the command sent to see
-		//  what the response is for.
-		switch (data[0] ^ 64) {
-			case self.DEFINE_MACHINE:
+		switch (self.config.protocol) {
+			case self.PROTOCOL_2000:
+				self.receivedData2000(data);
+				break;
 
-				// Turn off the MSB to get the actual count of this capability.
-				let count = data[2] ^ self.MSB;
+			case self.PROTOCOL_3000:
+				// data may come in as a multiline response to the request. Handle
+				//  each line separately.
+				data = data.toString().split("\r\n");
 
-				// Turn off the MSB of the second byte to see what the capability
-				//  response is actually for.
-				switch (data[1] ^ self.MSB) {
-					case self.CAPS_VIDEO_INPUTS:
-						self.log('info', `Detected: ${count} inputs.`);
-						self.config.inputCount = count;
-						break;
-				
-					case self.CAPS_VIDEO_OUTPUTS:
-						self.log('info', `Detected: ${count} outputs.`);
-						self.config.outputCount = count;
-						break;
-					
-					case self.CAPS_SETUPS:
-						self.log('info', `Detected: ${count} presets.`);
-						self.config.setupsCount = count;
-						break;
-				
-				}
-
-				// Decrement the counter now that it responded. Save the config
-				//  if all the requests responded.
-				if (--self.capabilityWaitingResponsesCounter === 0) {
-					// Update the actions now that the new capabilities have been stored.
-					self.actions();
-					self.saveConfig();
+				for (var i=0; i<data.length; i++) {
+					if (data[i].length !== 0) {
+						self.receivedData3000(data[i]);
+					}
 				}
 				break;
 
 		}
 
 	});
+
+};
+
+
+/**
+ * Handles a response from a Protocol 2000 matrix.
+ * 
+ * @param data     The data received from the matrix (ArrayBuffer)
+ */
+instance.prototype.receivedData2000 = function(data) {
+	var self = this;
+
+	// The response to a command returns the first byte with the second most
+	//  significant bit on. If we turn that second bit off, we can compare the
+	//  first byte of the response to the first byte of the command sent to see
+	//  what the response is for.
+	switch (data[0] ^ 64) {
+		case self.DEFINE_MACHINE:
+
+			// Turn off the MSB to get the actual count of this capability.
+			let count = data[2] ^ self.MSB;
+
+			// Turn off the MSB of the second byte to see what the capability
+			//  response is actually for.
+			switch (data[1] ^ self.MSB) {
+				case self.CAPS_VIDEO_INPUTS:
+					self.log('info', `Detected: ${count} inputs.`);
+					self.config.inputCount = count;
+					break;
+
+				case self.CAPS_VIDEO_OUTPUTS:
+					self.log('info', `Detected: ${count} outputs.`);
+					self.config.outputCount = count;
+					break;
+
+				case self.CAPS_SETUPS:
+					self.log('info', `Detected: ${count} presets.`);
+					self.config.setupsCount = count;
+					break;
+
+			}
+
+			// Decrement the counter now that it responded. Save the config
+			//  if all the requests responded.
+			if (--self.capabilityWaitingResponsesCounter === 0) {
+				// Update the actions now that the new capabilities have been stored.
+				self.actions();
+				self.saveConfig();
+			}
+			break;
+
+	}
+
+};
+
+
+/**
+ * Handles a response from a Protocol 3000 matrix.
+ * 
+ * @param data     The data received from the matrix (string)
+ */
+instance.prototype.receivedData3000 = function(data) {
+	var self = this;
+
+	// Decrement the counter now that it responded.
+	--self.capabilityWaitingResponsesCounter
+
+	// Response will look like: ~01@COMMAND PARAMETERS
+	var response = data.match(/^~\d+@([\w-]+)\s(.*)/);
+	if (response === null || response.length !== 3) {
+		// Bad response. Log and abort.
+		self.log('error', `Error parsing response: ${data}`);
+		return;
+	}
+
+	switch (response[1]) {
+		case 'INFO-IO':
+			// response[2] will look like: IN 11,OUT 9
+			var io = response[2].match(/IN (\d+),OUT (\d+)/);
+			if (io.length !== 3) {
+				self.log('error', 'Error parsing input/output response.');
+			}
+
+			if (self.config.inputCount === 0) {
+				self.log('info', `Detected: ${io[1]} inputs.`);
+				self.config.inputCount = parseInt(io[1]);
+			}
+			if (self.config.outputCount === 0) {
+				self.log('info', `Detected: ${io[2]} outputs.`);
+				self.config.outputCount = parseInt(io[2]);
+			}
+			break;
+
+		case 'INFO-PRST':
+			// response[2] will look like: VID 60,AUD 0. Only care about video presets.
+			var prst = response[2].match(/VID (\d+)/);
+			if (prst.length !== 2) {
+				self.log('error', 'Error parsing presets response.');
+			}
+
+			if (self.config.setupsCount === 0) {
+				self.log('info', `Detected: ${prst[1]} presets.`);
+				self.config.setupsCount = parseInt(prst[1]);
+			}
+			break;
+
+	}
+
+	// Save the config if all the requests responded.
+	if (self.capabilityWaitingResponsesCounter === 0) {
+		// Update the actions now that the new capabilities have been stored.
+		self.actions();
+		self.saveConfig();
+	}
 
 };
 
@@ -284,10 +376,8 @@ instance.prototype.config_fields = function() {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: "This module only works with Kramer matrices using Protocol 2000 and does not " +
-					"support Protocol 3000 devices, however some Kramer matrices can be configured " +
-					"to use either protocol.<br><br>" +
-					"Please consult your product's manual for compatibility details."
+			value: "This module works with Kramer matrices using Protocol 2000 and Protocol 3000. " +
+					"Check your matrices' manual to confirm which protocol is supported."
 		},
 		{
 			type: 'textinput',
@@ -303,8 +393,8 @@ instance.prototype.config_fields = function() {
 			default: self.PROTOCOL_2000,
 			width: 4,
 			choices: [
-				{ id: self.PROTOCOL_2000, label: 'Protocol 2000' }
-				// Future: { id: self.PROTOCOL_3000, label: 'Protocol 3000' }
+				{ id: self.PROTOCOL_2000, label: 'Protocol 2000' },
+				{ id: self.PROTOCOL_3000, label: 'Protocol 3000' }
 			]
 		},
 		{
@@ -449,8 +539,8 @@ instance.prototype.actions = function(system) {
 					id: 'status',
 					default: '0',
 					choices: [
-						{ id: '0', label: 'Panel Unlocked' },
-						{ id: '1', label: 'Panel Locked' },
+						{ id: '0', label: 'Unlock' },
+						{ id: '1', label: 'Lock' },
 					]
 				}
 			]
@@ -481,6 +571,7 @@ instance.prototype.action = function(action) {
 			break;
 
 		case 'delete_setup':
+			// Not a bug. The command to delete a setup is to store it.
 			cmd = self.makeCommand(self.STORE_SETUP, opt.setup, 1 /* DELETE */);
 			break;
 
@@ -514,8 +605,8 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 	let self = this;
 
 	switch (self.config.protocol) {
-		case self.PROTOCOL_2000:
 
+		case self.PROTOCOL_2000:
 			return Buffer.from([
 				parseInt(instruction, 10),
 				self.MSB + parseInt(paramA  || 0, 10),
@@ -524,8 +615,49 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 				0x0a  // End with a \r to separate multiple commands
 			]);
 
+
 		case self.PROTOCOL_3000:
-			// Future when someone has access to develop against a Protocol 3000 matrix.
+			switch (instruction) {
+
+				case self.DEFINE_MACHINE:
+					switch (paramA) {
+
+						case self.CAPS_VIDEO_INPUTS:
+						case self.CAPS_VIDEO_OUTPUTS:
+							// Are combined into one instruction in Protocol 3000
+							return "#INFO-IO?\r";
+
+						case self.CAPS_SETUPS:
+							return "#INFO-PRST?\r";
+
+					}
+					break;
+
+				case self.SWITCH_VIDEO:
+					// paramA = inputs
+					// paramB = outputs
+					if (paramB === '0') {
+						// '0' means route to all outputs
+						paramB = '*';
+					}
+					return `#VID ${paramA}>${paramB}\r`;
+
+				case self.STORE_SETUP:
+					return `#PRST-STO ${paramA}\r`;
+
+				case self.DELETE_SETUP:
+					self.log('info', 'Deleting presets is not supported on Protocol 3000 matrices.');
+					return;
+
+				case self.RECALL_SETUP:
+					return `#PRST-RCL ${paramA}\r`;
+
+				case self.FRONT_PANEL:
+					return `#LOCK-FP ${paramA}\r`;
+
+			}
+
+			break;
 
 	}
 
