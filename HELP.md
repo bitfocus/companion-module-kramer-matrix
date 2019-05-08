@@ -1,6 +1,6 @@
 # Kramer Matrix
 
-This module lets you to control Kramer Matrices using [Protocol 2000 (PDF)](http://k.kramerav.com/downloads/protocols/protocol_2000_rev0_51.pdf) or [Protocol 3000 (PDF)](https://k.kramerav.com/downloads/protocols/protocol_3000_3.0_master_user.pdf).
+This module lets you to control Kramer Matrices using [Protocol 2000 (PDF)](https://k.kramerav.com/downloads/protocols/protocol_2000_rev0_51.pdf) or [Protocol 3000 (PDF)](https://k.kramerav.com/downloads/protocols/protocol_3000_3.0_master_user.pdf).
 
 
 ## Instance Configuration
