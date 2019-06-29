@@ -29,12 +29,17 @@ function instance(system, id, config) {
 	self.CONNECT_TCP = 'TCP';
 	self.CONNECT_UDP = 'UDP';
 
+	// Define the possible Protocol 3000 commands to route video:
 	self.ROUTE_ROUTE = 'ROUTE';
 	self.ROUTE_VID   = 'VID';
+
+	// Define the possible parameters to disconnect an output:
+	self.DISCONNECT_0    = '0';
+	self.DISCONNECT_INP1 = '+1';
 	
 
-	// The most significant bit for bytes 2-4 must be 1. Adding 128 to each of those
-	//  bytes accomplishes this.
+	// Protocol 2000: The most significant bit for bytes 2-4 must be 1. Adding 128 to
+	//  each of those bytes accomplishes this.
 	self.MSB = 128;
 
 	// A promise that's resolved when the socket connects to the matrix.
@@ -141,6 +146,9 @@ instance.prototype.init = function() {
 
 	let configUpgraded = false;
 
+	// These config options were adding in version 1.2.0 of this module.
+	// Set the defaults if not set:
+
 	if (self.config.connectionProtocol === undefined) {
 		self.config.connectionProtocol = self.CONNECT_TCP;
 		configUpgraded = true;
@@ -148,6 +156,11 @@ instance.prototype.init = function() {
 
 	if (self.config.customizeRoute === undefined) {
 		self.config.customizeRoute = self.ROUTE_VID;
+		configUpgraded = true;
+	}
+
+	if (self.config.customizeDisconnect === undefined) {
+		self.config.customizeDisconnect = self.DISCONNECT_0;
 		configUpgraded = true;
 	}
 
@@ -187,7 +200,7 @@ instance.prototype.init_connection = function() {
 			case self.CONNECT_UDP:
 				self.socket = new udp(self.config.host, 50000);
 				self.status(self.STATUS_OK);
-				debug('Connected');
+				debug('Connected (UDP)');
 				break;
 
 		}
@@ -209,7 +222,7 @@ instance.prototype.init_connection = function() {
 
 		self.socket.on('connect', () => {
 			self.status(self.STATUS_OK);
-			debug('Connected');
+			debug('Connected (TCP)');
 			resolve();
 		})
 
@@ -468,7 +481,7 @@ instance.prototype.config_fields = function() {
 		{
 			type: 'textinput',
 			id: 'inputCount',
-			label: 'Input Count',
+			label: 'Input count',
 			default: '',
 			width: 2,
 			regex: '/^\\d*$/'
@@ -476,7 +489,7 @@ instance.prototype.config_fields = function() {
 		{
 			type: 'textinput',
 			id: 'outputCount',
-			label: 'Output Count',
+			label: 'Output count',
 			default: '',
 			width: 2,
 			regex: '/^\\d*$/'
@@ -484,7 +497,7 @@ instance.prototype.config_fields = function() {
 		{
 			type: 'textinput',
 			id: 'setupsCount',
-			label: 'Preset Count',
+			label: 'Preset count',
 			default: '',
 			width: 2,
 			regex: '/^\\d*$/'
@@ -503,8 +516,19 @@ instance.prototype.config_fields = function() {
 			default: self.ROUTE_VID,
 			width: 4,
 			choices: [
-				{ id: self.ROUTE_ROUTE, label: '# ROUTE' },
-				{ id: self.ROUTE_VID, label: '# VID' }
+				{ id: self.ROUTE_ROUTE, label: '#ROUTE' },
+				{ id: self.ROUTE_VID, label: '#VID' }
+			]
+		},
+		{
+			type: 'dropdown',
+			id: 'customizeDisconnect',
+			label: 'Disconnect parameter',
+			default: self.DISCONNECT_0,
+			width: 4,
+			choices: [
+				{ id: self.DISCONNECT_0, label: '0 (most common)' },
+				{ id: self.DISCONNECT_INP1, label: 'Number of inputs +1' }
 			]
 		},
 	]
@@ -735,6 +759,11 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 				case self.SWITCH_AUDIO:
 					// paramA = inputs
 					// paramB = outputs
+
+					if (paramA === '0') {
+						paramA = self.getDisconnectParameter();
+					}
+
 					if (paramB === '0') {
 						// '0' means route to all outputs
 						paramB = '*';
@@ -742,12 +771,20 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 
 					switch (self.config.customizeRoute) {
 						case self.ROUTE_ROUTE:
-							return `#ROUTE 1,${paramA},${paramB}\r`;
+							return `#ROUTE 1,${paramB},${paramA}\r`;
+
+						default:
+							self.log('info', 'Audio can only be switched using the #ROUTE command.');
 					}
 
 				case self.SWITCH_VIDEO:
 					// paramA = inputs
 					// paramB = outputs
+
+					if (paramA === '0') {
+						paramA = self.getDisconnectParameter();
+					}
+
 					if (paramB === '0') {
 						// '0' means route to all outputs
 						paramB = '*';
@@ -755,7 +792,8 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 
 					switch (self.config.customizeRoute) {
 						case self.ROUTE_ROUTE:
-							return `#ROUTE 0,${paramA},${paramB}\r`;
+							return `#ROUTE 0,${paramB},${paramA}\r`;
+
 						case self.ROUTE_VID:
 						default:
 							return `#VID ${paramA}>${paramB}\r`;
@@ -777,6 +815,28 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 			}
 
 			break;
+
+	}
+
+};
+
+
+/**
+ * Difference matrices use different command to issue a disconnect.
+ * Return the command appropriate for the user's matrix.
+ * 
+  * @returns              The parameter to disconnect the output
+ */
+instance.prototype.getDisconnectParameter = function() {
+	let self = this;
+
+	switch (self.config.customizeDisconnect) {
+		case self.DISCONNECT_INP1:
+			return this.config.inputCount + 1;
+
+		case self.DISCONNECT_0:
+		default:
+			return '0';
 
 	}
 
