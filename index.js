@@ -1,4 +1,5 @@
 var tcp = require('../../tcp');
+var udp = require('../../udp');
 var instance_skel = require('../../instance_skel');
 var debug;
 var log;
@@ -10,6 +11,7 @@ function instance(system, id, config) {
 	// See https://kramerav.com/support/download.asp?f=35567
 	// See https://kramerav.com/downloads/protocols/protocol_2000_rev0_51.pdf
 	self.SWITCH_VIDEO   =  1;
+	self.SWITCH_AUDIO   =  2;
 	self.STORE_SETUP    =  3;
 	self.RECALL_SETUP   =  4;
 	self.FRONT_PANEL    = 30;
@@ -22,6 +24,14 @@ function instance(system, id, config) {
 	//  Define the protocols this module may support:
 	self.PROTOCOL_2000 = '2000';
 	self.PROTOCOL_3000 = '3000';
+
+	//  Define the connection protocols this module will use:
+	self.CONNECT_TCP = 'TCP';
+	self.CONNECT_UDP = 'UDP';
+
+	self.ROUTE_ROUTE = 'ROUTE';
+	self.ROUTE_VID   = 'VID';
+	
 
 	// The most significant bit for bytes 2-4 must be 1. Adding 128 to each of those
 	//  bytes accomplishes this.
@@ -57,10 +67,10 @@ instance.prototype.updateConfig = function(config) {
 	config.setupsCount = parseInt(config.setupsCount || 0);
 
 	// Reconnect to the matrix if the IP changed
-	if (self.config.host !== config.host || self.isConnected() === false) {
-		// Have to set the new host IP before making the connection.
+	if (self.config.host !== config.host || self.isConnected() === false || self.config.connectionProtocol !== config.connectionProtocol) {
+		// Have to set the new host IP/protocol before making the connection.
 		self.config.host = config.host;
-		self.init_tcp();
+		self.init_connection();
 	}
 
 	// Update the rest of the config
@@ -129,15 +139,31 @@ instance.prototype.init = function() {
 	debug = self.debug;
 	log   = self.log;
 
-	self.init_tcp();
+	let configUpgraded = false;
+
+	if (self.config.connectionProtocol === undefined) {
+		self.config.connectionProtocol = self.CONNECT_TCP;
+		configUpgraded = true;
+	}
+
+	if (self.config.customizeRoute === undefined) {
+		self.config.customizeRoute = self.ROUTE_VID;
+		configUpgraded = true;
+	}
+
+	if (configUpgraded) {
+		self.saveConfig();
+	}
+
+	self.init_connection();
 
 };
 
 
 /**
- * Connect to the matrix over TCP port 5000.
+ * Connect to the matrix over TCP port 5000 or UDP port 50000.
  */
-instance.prototype.init_tcp = function() {
+instance.prototype.init_connection = function() {
 	var self = this;
 
 	if (self.socket !== undefined) {
@@ -153,9 +179,19 @@ instance.prototype.init_tcp = function() {
 
 	self.PromiseConnected = new Promise((resolve, reject) => {
 
-		// Don't try to reconnect automatically. A new connection will be made when
-		//  a command is sent. We never receive anything unsolicited.
-		self.socket = new tcp(self.config.host, 5000, { reconnect_interval:5000 });
+		switch (self.config.connectionProtocol) {
+			case self.CONNECT_TCP:
+				self.socket = new tcp(self.config.host, 5000, { reconnect_interval:5000 });
+				break;
+
+			case self.CONNECT_UDP:
+				self.socket = new udp(self.config.host, 50000);
+				self.status(self.STATUS_OK);
+				debug('Connected');
+				break;
+
+		}
+
 
 		self.socket.on('error', (err) => {
 
@@ -176,6 +212,8 @@ instance.prototype.init_tcp = function() {
 			debug('Connected');
 			resolve();
 		})
+
+		resolve();
 
 	}).catch((err) => {
 		// The error is already logged, but Node requires all rejected promises to be caught.
@@ -359,7 +397,18 @@ instance.prototype.send = function(cmd) {
  */
 instance.prototype.isConnected = function() {
 	let self = this;
-	return self.socket !== undefined && self.socket.connected;
+
+	switch (self.config.connectionProtocol) {
+		case self.CONNECT_TCP:
+			return self.socket !== undefined && self.socket.connected;
+
+		case self.CONNECT_UDP:
+			return self.socket !== undefined;
+
+	}
+	
+	return false;
+
 };
 
 
@@ -383,7 +432,7 @@ instance.prototype.config_fields = function() {
 			type: 'textinput',
 			id: 'host',
 			label: 'Target IP',
-			width: 6,
+			width: 4,
 			regex: self.REGEX_IP
 		},
 		{
@@ -395,6 +444,17 @@ instance.prototype.config_fields = function() {
 			choices: [
 				{ id: self.PROTOCOL_2000, label: 'Protocol 2000' },
 				{ id: self.PROTOCOL_3000, label: 'Protocol 3000' }
+			]
+		},
+		{
+			type: 'dropdown',
+			id: 'connectionProtocol',
+			label: 'TCP or UDP',
+			default: self.CONNECT_TCP,
+			width: 4,
+			choices: [
+				{ id: self.CONNECT_TCP, label: 'TCP (Port 5000)' },
+				{ id: self.CONNECT_UDP, label: 'UDP (Port 50000)' }
 			]
 		},
 		{
@@ -428,7 +488,25 @@ instance.prototype.config_fields = function() {
 			default: '',
 			width: 2,
 			regex: '/^\\d*$/'
-		}
+		},
+		{
+			type: 'text',
+			id: 'info',
+			width: 12,
+			label: 'Customize',
+			value: "Different matrices may use different commands. Customize them here. Leave default if unsure."
+		},
+		{
+			type: 'dropdown',
+			id: 'customizeRoute',
+			label: 'Route command',
+			default: self.ROUTE_VID,
+			width: 4,
+			choices: [
+				{ id: self.ROUTE_ROUTE, label: '# ROUTE' },
+				{ id: self.ROUTE_VID, label: '# VID' }
+			]
+		},
 	]
 };
 
@@ -476,6 +554,24 @@ instance.prototype.actions = function(system) {
 	}
 
 	self.setActions({
+		'switch_audio': {
+			label: 'Switch Audio',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Input #',
+					id: 'input',
+					default: '0',
+					choices: inputOpts
+				}, {
+					type: 'dropdown',
+					label: 'Output #',
+					id: 'output',
+					default: '0',
+					choices: outputOpts
+				}
+			]
+		},
 		'switch_video': {
 			label: 'Switch Video',
 			options: [
@@ -561,11 +657,14 @@ instance.prototype.action = function(action) {
 	let cmd = undefined;
 
 	switch (action.action) {
+		case 'switch_audio':
+			cmd = self.makeCommand(self.SWITCH_AUDIO, opt.input, opt.output);
+			break;
 
 		case 'switch_video':
 			cmd = self.makeCommand(self.SWITCH_VIDEO, opt.input, opt.output);
 			break;
-
+		
 		case 'store_setup':
 			cmd = self.makeCommand(self.STORE_SETUP, opt.setup, 0 /* STORE */);
 			break;
@@ -633,6 +732,19 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 					}
 					break;
 
+				case self.SWITCH_AUDIO:
+					// paramA = inputs
+					// paramB = outputs
+					if (paramB === '0') {
+						// '0' means route to all outputs
+						paramB = '*';
+					}
+
+					switch (self.config.customizeRoute) {
+						case self.ROUTE_ROUTE:
+							return `#ROUTE 1,${paramA},${paramB}\r`;
+					}
+
 				case self.SWITCH_VIDEO:
 					// paramA = inputs
 					// paramB = outputs
@@ -640,7 +752,14 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 						// '0' means route to all outputs
 						paramB = '*';
 					}
-					return `#VID ${paramA}>${paramB}\r`;
+
+					switch (self.config.customizeRoute) {
+						case self.ROUTE_ROUTE:
+							return `#ROUTE 0,${paramA},${paramB}\r`;
+						case self.ROUTE_VID:
+						default:
+							return `#VID ${paramA}>${paramB}\r`;
+					}
 
 				case self.STORE_SETUP:
 					return `#PRST-STO ${paramA}\r`;
