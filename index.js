@@ -71,10 +71,11 @@ instance.prototype.updateConfig = function(config) {
 	config.outputCount = parseInt(config.outputCount || 0);
 	config.setupsCount = parseInt(config.setupsCount || 0);
 
-	// Reconnect to the matrix if the IP changed
+	// Reconnect to the matrix if the IP or protocol changed
 	if (self.config.host !== config.host || self.isConnected() === false || self.config.connectionProtocol !== config.connectionProtocol) {
 		// Have to set the new host IP/protocol before making the connection.
-		self.config.host = config.host;
+		self.config.host               = config.host;
+		self.config.connectionProtocol = config.connectionProtocol;
 		self.init_connection();
 	}
 
@@ -205,7 +206,6 @@ instance.prototype.init_connection = function() {
 
 		}
 
-
 		self.socket.on('error', (err) => {
 
 			if (self.currentStatus !== self.STATUS_ERROR) {
@@ -224,9 +224,13 @@ instance.prototype.init_connection = function() {
 			self.status(self.STATUS_OK);
 			debug('Connected (TCP)');
 			resolve();
-		})
+		});
 
-		resolve();
+		
+		if (self.config.connectionProtocol === self.CONNECT_UDP) {
+			resolve();
+		}
+
 
 	}).catch((err) => {
 		// The error is already logged, but Node requires all rejected promises to be caught.
@@ -343,7 +347,7 @@ instance.prototype.receivedData3000 = function(data) {
 		case 'INFO-IO':
 			// response[2] will look like: IN 11,OUT 9
 			var io = response[2].match(/IN (\d+),OUT (\d+)/);
-			if (io.length !== 3) {
+			if (io === null || io.length !== 3) {
 				self.log('error', 'Error parsing input/output response.');
 			}
 
@@ -360,7 +364,7 @@ instance.prototype.receivedData3000 = function(data) {
 		case 'INFO-PRST':
 			// response[2] will look like: VID 60,AUD 0. Only care about video presets.
 			var prst = response[2].match(/VID (\d+)/);
-			if (prst.length !== 2) {
+			if (prst === null || prst.length !== 2) {
 				self.log('error', 'Error parsing presets response.');
 			}
 
