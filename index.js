@@ -221,6 +221,7 @@ instance.prototype.init_connection = function() {
 		});
 
 		self.socket.on('connect', () => {
+			// This event only fires for TCP connections.
 			self.status(self.STATUS_OK);
 			debug('Connected (TCP)');
 			resolve();
@@ -228,6 +229,7 @@ instance.prototype.init_connection = function() {
 
 		
 		if (self.config.connectionProtocol === self.CONNECT_UDP) {
+			// Auto-resolve the promise if this is a UDP connection.
 			resolve();
 		}
 
@@ -333,7 +335,7 @@ instance.prototype.receivedData3000 = function(data) {
 	var self = this;
 
 	// Decrement the counter now that it responded.
-	--self.capabilityWaitingResponsesCounter
+	--self.capabilityWaitingResponsesCounter;
 
 	// Response will look like: ~01@COMMAND PARAMETERS
 	var response = data.match(/^~\d+@([\w-]+)\s(.*)/);
