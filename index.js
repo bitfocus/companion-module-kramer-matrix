@@ -458,7 +458,7 @@ instance.prototype.config_fields = function() {
 			type: 'dropdown',
 			id: 'protocol',
 			label: 'Protocol',
-			default: self.PROTOCOL_2000,
+			default: self.PROTOCOL_3000,
 			width: 4,
 			choices: [
 				{ id: self.PROTOCOL_2000, label: 'Protocol 2000' },
