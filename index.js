@@ -740,8 +740,7 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 				parseInt(instruction, 10),
 				self.MSB + parseInt(paramA  || 0, 10),
 				self.MSB + parseInt(paramB  || 0, 10),
-				self.MSB + parseInt(machine || 1, 10),
-				0x0a  // End with a \r to separate multiple commands
+				self.MSB + parseInt(machine || 1, 10)
 			]);
 
 
