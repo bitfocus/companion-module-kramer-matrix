@@ -620,6 +620,42 @@ instance.prototype.actions = function(system) {
 				}
 			]
 		},
+		'switch_video_dynamic': {
+			label: 'Switch Video (Dynamic)',
+			options: [
+				{
+					type: 'textwithvariables',
+					label: 'Input #',
+					id: 'input',
+					default: '0',
+					regex: '/^\\d*$/'
+				}, {
+					type: 'textwithvariables',
+					label: 'Output #',
+					id: 'output',
+					default: '0',
+					regex: '/^\\d*$/'
+				}
+			]
+		},
+		'switch_audio_dynamic': {
+			label: 'Switch Audio (Dynamic)',
+			options: [
+				{
+					type: 'textwithvariables',
+					label: 'Input #',
+					id: 'input',
+					default: '0',
+					regex: '/^\\d*$/'
+				}, {
+					type: 'textwithvariables',
+					label: 'Output #',
+					id: 'output',
+					default: '0',
+					regex: '/^\\d*$/'
+				}
+			]
+		},
 		'recall_setup': {
 			label: 'Recall Preset',
 			options: [
@@ -692,6 +728,14 @@ instance.prototype.action = function(action) {
 			break;
 
 		case 'switch_video':
+			cmd = self.makeCommand(self.SWITCH_VIDEO, opt.input, opt.output);
+			break;
+			
+		case 'switch_audio_dynamic':
+			cmd = self.makeCommand(self.SWITCH_AUDIO, opt.input, opt.output);
+			break;
+
+		case 'switch_video_dynamic':
 			cmd = self.makeCommand(self.SWITCH_VIDEO, opt.input, opt.output);
 			break;
 		
