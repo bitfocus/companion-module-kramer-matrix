@@ -732,11 +732,29 @@ instance.prototype.action = function(action) {
 			break;
 			
 		case 'switch_audio_dynamic':
-			cmd = self.makeCommand(self.SWITCH_AUDIO, opt.input, opt.output);
+			// Posible user has inputted variable for either input or output
+			var optInput
+			self.system.emit('variable_parse', String(opt.input).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optInput = value
+			})
+			var optOutput
+			self.system.emit('variable_parse', String(opt.output).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optOutput = value
+			})
+			cmd = self.makeCommand(self.SWITCH_AUDIO, optInput, optOutput);
 			break;
 
 		case 'switch_video_dynamic':
-			cmd = self.makeCommand(self.SWITCH_VIDEO, opt.input, opt.output);
+			// Posible user has inputted variable for either input or output
+			var optInput
+			self.system.emit('variable_parse', String(opt.input).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optInput = value
+			})
+			var optOutput
+			self.system.emit('variable_parse', String(opt.output).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optOutput = value
+			})
+			cmd = self.makeCommand(self.SWITCH_VIDEO, optInput, optOutput);
 			break;
 		
 		case 'store_setup':
