@@ -627,14 +627,12 @@ instance.prototype.actions = function(system) {
 					type: 'textwithvariables',
 					label: 'Input #',
 					id: 'input',
-					default: '0',
-					regex: '/^\\d*$/'
+					default: '0'
 				}, {
 					type: 'textwithvariables',
 					label: 'Output #',
 					id: 'output',
-					default: '0',
-					regex: '/^\\d*$/'
+					default: '0'
 				}
 			]
 		},
@@ -719,8 +717,27 @@ instance.prototype.actions = function(system) {
  */
 instance.prototype.action = function(action) {
 	let self = this;
-	let opt = action.options;
 	let cmd = undefined;
+
+
+	// Clone 'action.options', otherwise reassigning the parsed variables directly will push
+	//  them back into the config, because that's done by reference.
+	let opt = JSON.parse(JSON.stringify(action.options));
+
+	// Loop through each option for this action, and if any appear to be variables, parse them
+	//  and reassign the result back into 'opt'.
+	for (const key in opt) {
+		let v = opt[key];
+		if (typeof v === 'string' && v.includes('$(')) {
+			self.system.emit('variable_parse', v, parsed => v = parsed.trim());
+			if (v.match(/^\d+$/)) {
+				opt[key] = v;
+			} else {
+				self.log('error', `Cannot parse '${v}' in '${action.action}.${key}' as a number. Skipping action.`);
+				return;
+			}
+		}
+	}
 
 	switch (action.action) {
 		case 'switch_audio':
@@ -732,29 +749,11 @@ instance.prototype.action = function(action) {
 			break;
 			
 		case 'switch_audio_dynamic':
-			// Posible user has inputted variable for either input or output
-			var optInput
-			self.system.emit('variable_parse', String(opt.input).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
-				optInput = value
-			})
-			var optOutput
-			self.system.emit('variable_parse', String(opt.output).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
-				optOutput = value
-			})
-			cmd = self.makeCommand(self.SWITCH_AUDIO, optInput, optOutput);
+			cmd = self.makeCommand(self.SWITCH_AUDIO, opt.input, opt.output);
 			break;
 
 		case 'switch_video_dynamic':
-			// Posible user has inputted variable for either input or output
-			var optInput
-			self.system.emit('variable_parse', String(opt.input).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
-				optInput = value
-			})
-			var optOutput
-			self.system.emit('variable_parse', String(opt.output).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
-				optOutput = value
-			})
-			cmd = self.makeCommand(self.SWITCH_VIDEO, optInput, optOutput);
+			cmd = self.makeCommand(self.SWITCH_VIDEO, opt.input, opt.output);
 			break;
 		
 		case 'store_setup':
