@@ -94,15 +94,18 @@ instance.prototype.updateConfig = function(config) {
 		detectCapabilities.push(self.CAPS_SETUPS);
 	}
 
-	self.PromiseConnected.then(() => {
-		// Once connected, check the capabilities of the matrix if needed.
-		self.detectCapabilities(detectCapabilities);
-	}).catch((err) => {
-		// Error while connecting. The error message is already logged, but Node requires
-		//  the rejected promise to be handled.
-	});
 
-	// Rebuild the actions to reflect the capabilities we have
+	if (self.PromiseConnected) {
+		self.PromiseConnected.then(() => {
+			// Once connected, check the capabilities of the matrix if needed.
+			self.detectCapabilities(detectCapabilities);
+		}).catch((err) => {
+			// Error while connecting. The error message is already logged, but Node requires
+			//  the rejected promise to be handled.
+		});
+	}
+
+	// Rebuild the actions to reflect the capabilities we have.
 	self.actions();
 
 };
