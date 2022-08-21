@@ -775,7 +775,7 @@ instance.prototype.action = function(action) {
 
 	}
 
-	if (cmd !== undefined) {
+	if (cmd) {
 		self.send(cmd);
 	}
 
@@ -841,7 +841,9 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 
 						default:
 							self.log('info', 'Audio can only be switched using the #ROUTE command.');
+							return null;
 					}
+					break;
 
 				case self.SWITCH_VIDEO:
 					// paramA = inputs
@@ -864,6 +866,7 @@ instance.prototype.makeCommand = function(instruction, paramA, paramB, machine) 
 						default:
 							return `#VID ${paramA}>${paramB}\r`;
 					}
+					break;
 
 				case self.STORE_SETUP:
 					return `#PRST-STO ${paramA}\r`;
