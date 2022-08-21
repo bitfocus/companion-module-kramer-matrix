@@ -620,6 +620,42 @@ instance.prototype.actions = function(system) {
 				}
 			]
 		},
+		'switch_video_dynamic': {
+			label: 'Switch Video (Dynamic)',
+			options: [
+				{
+					type: 'textwithvariables',
+					label: 'Input #',
+					id: 'input',
+					default: '0',
+					regex: '/^\\d*$/'
+				}, {
+					type: 'textwithvariables',
+					label: 'Output #',
+					id: 'output',
+					default: '0',
+					regex: '/^\\d*$/'
+				}
+			]
+		},
+		'switch_audio_dynamic': {
+			label: 'Switch Audio (Dynamic)',
+			options: [
+				{
+					type: 'textwithvariables',
+					label: 'Input #',
+					id: 'input',
+					default: '0',
+					regex: '/^\\d*$/'
+				}, {
+					type: 'textwithvariables',
+					label: 'Output #',
+					id: 'output',
+					default: '0',
+					regex: '/^\\d*$/'
+				}
+			]
+		},
 		'recall_setup': {
 			label: 'Recall Preset',
 			options: [
@@ -693,6 +729,32 @@ instance.prototype.action = function(action) {
 
 		case 'switch_video':
 			cmd = self.makeCommand(self.SWITCH_VIDEO, opt.input, opt.output);
+			break;
+			
+		case 'switch_audio_dynamic':
+			// Posible user has inputted variable for either input or output
+			var optInput
+			self.system.emit('variable_parse', String(opt.input).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optInput = value
+			})
+			var optOutput
+			self.system.emit('variable_parse', String(opt.output).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optOutput = value
+			})
+			cmd = self.makeCommand(self.SWITCH_AUDIO, optInput, optOutput);
+			break;
+
+		case 'switch_video_dynamic':
+			// Posible user has inputted variable for either input or output
+			var optInput
+			self.system.emit('variable_parse', String(opt.input).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optInput = value
+			})
+			var optOutput
+			self.system.emit('variable_parse', String(opt.output).trim(), function (value) { // Picking a var from the dropdown seems to add a space on end (use trim() to ensure field is a just a clean variable)
+				optOutput = value
+			})
+			cmd = self.makeCommand(self.SWITCH_VIDEO, optInput, optOutput);
 			break;
 		
 		case 'store_setup':
