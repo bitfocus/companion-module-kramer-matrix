@@ -36,6 +36,14 @@ Changes the video routing of inputs to outputs.
 You can route a specific input to an output, an input to all outputs, or disconnect all outputs.
 
 
+### Switch Audio (Dynamic)
+Changes the audio routing of inputs to outputs, but allows **custom variables** to define those inputs/outputs. See Companion's **Getting started** guide for more information.
+
+
+### Switch Video (Dynamic)
+Changes the video routing of inputs to outputs, but allows **custom variables** to define those inputs/outputs. See Companion's **Getting started** guide for more information.
+
+
 ### Recall Preset
 Recalls a stored preset (may be referred to as a *Setup* in the manual).
 
