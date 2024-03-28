@@ -1,10 +1,13 @@
-const { InstanceBase, Regex, runEntrypoint, InstanceStatus } = require(
+const {
+  InstanceBase,
+  Regex,
+  runEntrypoint,
+  InstanceStatus,
+  UDPHelper,
+  TCPHelper,
+} = require(
   "@companion-module/base",
 );
-// var tcp = require('../../tcp');
-// var udp = require('../../udp');
-var debug;
-var log;
 
 class KramerInstance extends InstanceBase {
   constructor(internal) {
@@ -57,11 +60,10 @@ class KramerInstance extends InstanceBase {
   async init(config) {
     this.config = config;
     this.updateStatus("ok");
-    this.updateActions();
+    this.actions();
 
-    debug = this.debug;
-    log = this.log;
-
+    // TODO: Convert this to the new upgrade infrastructure!
+    //
     let configUpgraded = false;
 
     // These config options were adding in version 1.2.0 of this module.
@@ -83,7 +85,7 @@ class KramerInstance extends InstanceBase {
     }
 
     if (configUpgraded) {
-      this.saveConfig();
+      this.saveConfig(this.config);
     }
 
     this.init_connection();
@@ -94,7 +96,7 @@ class KramerInstance extends InstanceBase {
    *
    * @param config         The new config object
    */
-  updateConfig() {
+  async configUpdated() {
     // Convert to a number. Convert to 0 if empty.
     config.inputCount = parseInt(config.inputCount || 0);
     config.outputCount = parseInt(config.outputCount || 0);
@@ -177,7 +179,7 @@ class KramerInstance extends InstanceBase {
       return;
     }
 
-    this.status(this.STATUS_WARNING, "Connecting");
+    this.updateStatus("connecting");
 
     this.PromiseConnected = new Promise((resolve, reject) => {
       switch (this.config.connectionProtocol) {
@@ -189,17 +191,17 @@ class KramerInstance extends InstanceBase {
 
         case this.CONNECT_UDP:
           this.socket = new udp(this.config.host, 50000);
-          this.status(this.STATUS_OK);
-          debug("Connected (UDP)");
+          this.updateStatus("ok");
+          this.log("debug", "Connected (UDP)");
           break;
       }
 
       this.socket.on("error", (err) => {
-        if (this.currentStatus !== this.STATUS_ERROR) {
+        if (this.currentStatus !== "error") {
           // Only log the error if the module isn't already in this state.
           // This is to prevent spamming the log during reconnect failures.
-          debug("Network error", err);
-          this.status(this.STATUS_ERROR, err);
+          this.log("debug", "Network error", err);
+          this.updateStatus("connection_failure", err);
           this.log("error", `Network error: ${err.message}`);
         }
 
@@ -208,8 +210,8 @@ class KramerInstance extends InstanceBase {
 
       this.socket.on("connect", () => {
         // This event only fires for TCP connections.
-        this.status(this.STATUS_OK);
-        debug("Connected (TCP)");
+        this.updateStatus("ok");
+        this.log("debug", "Connected (TCP)");
         resolve();
       });
 
@@ -222,7 +224,7 @@ class KramerInstance extends InstanceBase {
     });
 
     this.socket.on("status_change", (status, message) => {
-      this.status(status, message);
+      this.updateStatus(status, message);
     });
 
     this.socket.on("data", (data) => {
@@ -292,7 +294,7 @@ class KramerInstance extends InstanceBase {
         if (--this.capabilityWaitingResponsesCounter === 0) {
           // Update the actions now that the new capabilities have been stored.
           this.actions();
-          this.saveConfig();
+          this.saveConfig(this.config);
         }
         break;
     }
@@ -351,7 +353,7 @@ class KramerInstance extends InstanceBase {
     if (this.capabilityWaitingResponsesCounter === 0) {
       // Update the actions now that the new capabilities have been stored.
       this.actions();
-      this.saveConfig();
+      this.saveConfig(this.config);
     }
   }
 
@@ -363,10 +365,10 @@ class KramerInstance extends InstanceBase {
    */
   send(cmd) {
     if (this.isConnected()) {
-      debug("sending", cmd, "to", this.config.host);
+      this.log("debug", "sending", cmd, "to", this.config.host);
       return this.socket.send(cmd);
     } else {
-      debug("Socket not connected");
+      this.log("debug", "Socket not connected");
     }
 
     return false;
@@ -394,7 +396,7 @@ class KramerInstance extends InstanceBase {
    *
    * @returns      The config fields for the module
    */
-  config_fields() {
+  getConfigFields() {
     return [
       {
         type: "static-text",
@@ -410,7 +412,7 @@ class KramerInstance extends InstanceBase {
         id: "host",
         label: "Target IP",
         width: 4,
-        regex: this.REGEX_IP,
+        regex: Regex.IP,
       },
       {
         type: "dropdown",
@@ -503,8 +505,8 @@ class KramerInstance extends InstanceBase {
   /**
    * Cleanup when the module gets deleted.
    */
-  destroy() {
-    debug("destroy", this.id);
+  async destroy() {
+    this.log('debug', 'destroy');
 
     if (this.socket !== undefined) {
       this.socket.destroy();
@@ -515,7 +517,7 @@ class KramerInstance extends InstanceBase {
   /**
    * Creates the actions for this module.
    */
-  updateActions() {
+  actions() {
     let inputOpts = [{ id: "0", label: "Off" }];
     let outputOpts = [{ id: "0", label: "All" }];
     let setups = [];
@@ -926,4 +928,4 @@ class KramerInstance extends InstanceBase {
   // }
 }
 
-runEntrypoint(KramerInstance);
+runEntrypoint(KramerInstance, []);
