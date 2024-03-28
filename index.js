@@ -183,13 +183,13 @@ class KramerInstance extends InstanceBase {
     this.PromiseConnected = new Promise((resolve, reject) => {
       switch (this.config.connectionProtocol) {
         case this.CONNECT_TCP:
-          this.socket = new tcp(this.config.host, 5000, {
+          this.socket = new TCPHelper(this.config.host, 5000, {
             reconnect_interval: 5000,
           });
           break;
 
         case this.CONNECT_UDP:
-          this.socket = new udp(this.config.host, 50000);
+          this.socket = new UDPHelper(this.config.host, 50000);
           this.updateStatus("ok");
           this.log("debug", "Connected (UDP)");
           break;
