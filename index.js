@@ -829,7 +829,7 @@ class KramerInstance extends InstanceBase {
           this.send(cmd);
         },
       },
-      "front_panel_lock": {
+      "front_panel": {
         name: "Front Panel Lock",
         options: [
           {
