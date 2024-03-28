@@ -515,7 +515,7 @@ class KramerInstance extends InstanceBase {
   /**
    * Creates the actions for this module.
    */
-  actions(system) {
+  updateActions() {
     let inputOpts = [{ id: "0", label: "Off" }];
     let outputOpts = [{ id: "0", label: "All" }];
     let setups = [];
@@ -536,131 +536,317 @@ class KramerInstance extends InstanceBase {
       setups.push({ id: i, label: `Preset ${i}` });
     }
 
-    this.setActions({
+    /**
+     * Formats the command as per the Kramer 2000 protocol.
+     *
+     * @param instruction    String or base 10 instruction code for the command
+     * @param paramA         String or base 10 parameter A for the instruction
+     * @param paramB         String or base 10 parameter B for the instruction
+     * @param machine        String or base 10 for the machine to target
+     * @returns              The built command to send
+     */
+    const makeCommand = (instruction, paramA, paramB, machine) => {
+      switch (this.config.protocol) {
+        case this.PROTOCOL_2000:
+          return Buffer.from([
+            parseInt(instruction, 10),
+            this.MSB + parseInt(paramA || 0, 10),
+            this.MSB + parseInt(paramB || 0, 10),
+            this.MSB + parseInt(machine || 1, 10),
+          ]);
+
+        case this.PROTOCOL_3000:
+          switch (instruction) {
+            case this.DEFINE_MACHINE:
+              switch (paramA) {
+                case this.CAPS_VIDEO_INPUTS:
+                case this.CAPS_VIDEO_OUTPUTS:
+                  // Are combined into one instruction in Protocol 3000
+                  return "#INFO-IO?\r";
+
+                case this.CAPS_SETUPS:
+                  return "#INFO-PRST?\r";
+              }
+              break;
+
+            case this.SWITCH_AUDIO:
+              // paramA = inputs
+              // paramB = outputs
+
+              if (paramA === "0") {
+                paramA = getDisconnectParameter();
+              }
+
+              if (paramB === "0") {
+                // '0' means route to all outputs
+                paramB = "*";
+              }
+
+              switch (this.config.customizeRoute) {
+                case this.ROUTE_ROUTE:
+                  return `#ROUTE 1,${paramB},${paramA}\r`;
+
+                default:
+                  this.log(
+                    "info",
+                    "Audio can only be switched using the #ROUTE command.",
+                  );
+                  return null;
+              }
+              break;
+
+            case this.SWITCH_VIDEO:
+              // paramA = inputs
+              // paramB = outputs
+
+              if (paramA === "0") {
+                paramA = getDisconnectParameter();
+              }
+
+              if (paramB === "0") {
+                // '0' means route to all outputs
+                paramB = "*";
+              }
+
+              switch (this.config.customizeRoute) {
+                case this.ROUTE_ROUTE:
+                  return `#ROUTE 0,${paramB},${paramA}\r`;
+
+                case this.ROUTE_VID:
+                default:
+                  return `#VID ${paramA}>${paramB}\r`;
+              }
+              break;
+
+            case this.STORE_SETUP:
+              return `#PRST-STO ${paramA}\r`;
+
+            case this.DELETE_SETUP:
+              this.log(
+                "info",
+                "Deleting presets is not supported on Protocol 3000 matrices.",
+              );
+              return;
+
+            case this.RECALL_SETUP:
+              return `#PRST-RCL ${paramA}\r`;
+
+            case this.FRONT_PANEL:
+              return `#LOCK-FP ${paramA}\r`;
+          }
+
+          break;
+      }
+    };
+
+    /**
+     * Difference matrices use different command to issue a disconnect.
+     * Return the command appropriate for the user's matrix.
+     *
+     * @returns              The parameter to disconnect the output
+     */
+    const getDisconnectParameter = () => {
+      switch (this.config.customizeDisconnect) {
+        case this.DISCONNECT_INP1:
+          return this.config.inputCount + 1;
+
+        case this.DISCONNECT_0:
+        default:
+          return "0";
+      }
+    };
+
+    this.setActionDefinitions({
       "switch_audio": {
-        label: "Switch Audio",
+        name: "Switch Audio",
         options: [
           {
             type: "dropdown",
-            label: "Input #",
+            name: "Input #",
             id: "input",
             default: "0",
             choices: inputOpts,
           },
           {
             type: "dropdown",
-            label: "Output #",
+            name: "Output #",
             id: "output",
             default: "0",
             choices: outputOpts,
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.SWITCH_AUDIO,
+            event.options.input,
+            event.options.output,
+          );
+          this.send(cmd);
+        },
       },
       "switch_video": {
-        label: "Switch Video",
+        name: "Switch Video",
         options: [
           {
             type: "dropdown",
-            label: "Input #",
+            name: "Input #",
             id: "input",
             default: "0",
             choices: inputOpts,
           },
           {
             type: "dropdown",
-            label: "Output #",
+            name: "Output #",
             id: "output",
             default: "0",
             choices: outputOpts,
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.SWITCH_VIDEO,
+            event.options.input,
+            event.options.output,
+          );
+          this.send(cmd);
+        },
       },
       "switch_video_dynamic": {
-        label: "Switch Video (Dynamic)",
+        name: "Switch Video (Dynamic)",
         options: [
           {
             type: "textwithvariables",
-            label: "Input #",
+            name: "Input #",
             id: "input",
             default: "0",
           },
           {
             type: "textwithvariables",
-            label: "Output #",
+            name: "Output #",
             id: "output",
             default: "0",
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.SWITCH_VIDEO,
+            event.options.input,
+            event.options.output,
+          );
+          this.send(cmd);
+        },
       },
       "switch_audio_dynamic": {
-        label: "Switch Audio (Dynamic)",
+        name: "Switch Audio (Dynamic)",
         options: [
           {
             type: "textwithvariables",
-            label: "Input #",
+            name: "Input #",
             id: "input",
             default: "0",
             regex: "/^\\d*$/",
           },
           {
             type: "textwithvariables",
-            label: "Output #",
+            name: "Output #",
             id: "output",
             default: "0",
             regex: "/^\\d*$/",
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.SWITCH_AUDIO,
+            event.options.input,
+            event.options.output,
+          );
+          this.send(cmd);
+        },
       },
       "recall_setup": {
-        label: "Recall Preset",
+        name: "Recall Preset",
         options: [
           {
             type: "dropdown",
-            label: "Preset",
+            name: "Preset",
             id: "setup",
             default: "1",
             choices: setups,
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.RECALL_SETUP,
+            event.options.setup,
+            0,
+          );
+          this.send(cmd);
+        },
       },
       "store_setup": {
-        label: "Store Preset",
+        name: "Store Preset",
         options: [
           {
             type: "dropdown",
-            label: "Preset",
+            name: "Preset",
             id: "setup",
             default: "1",
             choices: setups,
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.STORE_SETUP,
+            event.options.setup,
+            0, /* STORE */
+          );
+          this.send(cmd);
+        },
       },
       "delete_setup": {
-        label: "Delete Preset",
+        name: "Delete Preset",
         options: [
           {
             type: "dropdown",
-            label: "Preset",
+            name: "Preset",
             id: "setup",
             default: "1",
             choices: setups,
           },
         ],
+
+        callback: async (event) => {
+          // Not a bug. The command to delete a setup is to store it.
+          let cmd = makeCommand(
+            this.STORE_SETUP,
+            event.options.setup,
+            1, /* DELETE */
+          );
+          this.send(cmd);
+        },
       },
-      "front_panel": {
-        label: "Front Panel",
+      "front_panel_lock": {
+        name: "Front Panel Lock",
         options: [
           {
             type: "dropdown",
-            label: "Status",
+            name: "Status",
             id: "status",
             default: "0",
             choices: [
-              { id: "0", label: "Unlock" },
-              { id: "1", label: "Lock" },
+              { id: "0", name: "Unlock" },
+              { id: "1", name: "Lock" },
             ],
           },
         ],
+        callback: async (event) => {
+          let cmd = makeCommand(
+            this.FRONT_PANEL,
+            event.options.status,
+            0,
+          );
+          this.send(cmd);
+        },
       },
     });
   }
@@ -670,190 +856,70 @@ class KramerInstance extends InstanceBase {
    *
    * @param action      The action to perform
    */
-  action(action) {
-    let cmd = undefined;
-
-    // Clone 'action.options', otherwise reassigning the parsed variables directly will push
-    //  them back into the config, because that's done by reference.
-    let opt = JSON.parse(JSON.stringify(action.options));
-
-    // Loop through each option for this action, and if any appear to be variables, parse them
-    //  and reassign the result back into 'opt'.
-    for (const key in opt) {
-      let v = opt[key];
-      if (typeof v === "string" && v.includes("$(")) {
-        this.system.emit("variable_parse", v, (parsed) => v = parsed.trim());
-        if (v.match(/^\d+$/)) {
-          opt[key] = v;
-        } else {
-          this.log(
-            "error",
-            `Cannot parse '${v}' in '${action.action}.${key}' as a number. Skipping action.`,
-          );
-          return;
-        }
-      }
-    }
-
-    switch (action.action) {
-      case "switch_audio":
-        cmd = this.makeCommand(this.SWITCH_AUDIO, opt.input, opt.output);
-        break;
-
-      case "switch_video":
-        cmd = this.makeCommand(this.SWITCH_VIDEO, opt.input, opt.output);
-        break;
-
-      case "switch_audio_dynamic":
-        cmd = this.makeCommand(this.SWITCH_AUDIO, opt.input, opt.output);
-        break;
-
-      case "switch_video_dynamic":
-        cmd = this.makeCommand(this.SWITCH_VIDEO, opt.input, opt.output);
-        break;
-
-      case "store_setup":
-        cmd = this.makeCommand(this.STORE_SETUP, opt.setup, 0 /* STORE */);
-        break;
-
-      case "delete_setup":
-        // Not a bug. The command to delete a setup is to store it.
-        cmd = this.makeCommand(this.STORE_SETUP, opt.setup, 1 /* DELETE */);
-        break;
-
-      case "recall_setup":
-        cmd = this.makeCommand(this.RECALL_SETUP, opt.setup, 0);
-        break;
-
-      case "front_panel":
-        cmd = this.makeCommand(this.FRONT_PANEL, opt.status, 0);
-        break;
-    }
-
-    if (cmd) {
-      this.send(cmd);
-    }
-  }
-
-  /**
-   * Formats the command as per the Kramer 2000 protocol.
-   *
-   * @param instruction    String or base 10 instruction code for the command
-   * @param paramA         String or base 10 parameter A for the instruction
-   * @param paramB         String or base 10 parameter B for the instruction
-   * @param machine        String or base 10 for the machine to target
-   * @returns              The built command to send
-   */
-  makeCommand(instruction, paramA, paramB, machine) {
-    switch (this.config.protocol) {
-      case this.PROTOCOL_2000:
-        return Buffer.from([
-          parseInt(instruction, 10),
-          this.MSB + parseInt(paramA || 0, 10),
-          this.MSB + parseInt(paramB || 0, 10),
-          this.MSB + parseInt(machine || 1, 10),
-        ]);
-
-      case this.PROTOCOL_3000:
-        switch (instruction) {
-          case this.DEFINE_MACHINE:
-            switch (paramA) {
-              case this.CAPS_VIDEO_INPUTS:
-              case this.CAPS_VIDEO_OUTPUTS:
-                // Are combined into one instruction in Protocol 3000
-                return "#INFO-IO?\r";
-
-              case this.CAPS_SETUPS:
-                return "#INFO-PRST?\r";
-            }
-            break;
-
-          case this.SWITCH_AUDIO:
-            // paramA = inputs
-            // paramB = outputs
-
-            if (paramA === "0") {
-              paramA = this.getDisconnectParameter();
-            }
-
-            if (paramB === "0") {
-              // '0' means route to all outputs
-              paramB = "*";
-            }
-
-            switch (this.config.customizeRoute) {
-              case this.ROUTE_ROUTE:
-                return `#ROUTE 1,${paramB},${paramA}\r`;
-
-              default:
-                this.log(
-                  "info",
-                  "Audio can only be switched using the #ROUTE command.",
-                );
-                return null;
-            }
-            break;
-
-          case this.SWITCH_VIDEO:
-            // paramA = inputs
-            // paramB = outputs
-
-            if (paramA === "0") {
-              paramA = this.getDisconnectParameter();
-            }
-
-            if (paramB === "0") {
-              // '0' means route to all outputs
-              paramB = "*";
-            }
-
-            switch (this.config.customizeRoute) {
-              case this.ROUTE_ROUTE:
-                return `#ROUTE 0,${paramB},${paramA}\r`;
-
-              case this.ROUTE_VID:
-              default:
-                return `#VID ${paramA}>${paramB}\r`;
-            }
-            break;
-
-          case this.STORE_SETUP:
-            return `#PRST-STO ${paramA}\r`;
-
-          case this.DELETE_SETUP:
-            this.log(
-              "info",
-              "Deleting presets is not supported on Protocol 3000 matrices.",
-            );
-            return;
-
-          case this.RECALL_SETUP:
-            return `#PRST-RCL ${paramA}\r`;
-
-          case this.FRONT_PANEL:
-            return `#LOCK-FP ${paramA}\r`;
-        }
-
-        break;
-    }
-  }
-
-  /**
-   * Difference matrices use different command to issue a disconnect.
-   * Return the command appropriate for the user's matrix.
-   *
-   * @returns              The parameter to disconnect the output
-   */
-  getDisconnectParameter() {
-    switch (this.config.customizeDisconnect) {
-      case this.DISCONNECT_INP1:
-        return this.config.inputCount + 1;
-
-      case this.DISCONNECT_0:
-      default:
-        return "0";
-    }
-  }
+  // action(action) {
+  //   let cmd = undefined;
+  //
+  //   // Clone 'action.options', otherwise reassigning the parsed variables directly will push
+  //   //  them back into the config, because that's done by reference.
+  //   let opt = JSON.parse(JSON.stringify(action.options));
+  //
+  //   // Loop through each option for this action, and if any appear to be variables, parse them
+  //   //  and reassign the result back into 'opt'.
+  //   for (const key in opt) {
+  //     let v = opt[key];
+  //     if (typeof v === "string" && v.includes("$(")) {
+  //       this.system.emit("variable_parse", v, (parsed) => v = parsed.trim());
+  //       if (v.match(/^\d+$/)) {
+  //         opt[key] = v;
+  //       } else {
+  //         this.log(
+  //           "error",
+  //           `Cannot parse '${v}' in '${action.action}.${key}' as a number. Skipping action.`,
+  //         );
+  //         return;
+  //       }
+  //     }
+  //   }
+  //
+  //   switch (action.action) {
+  //     case "switch_audio":
+  //       cmd = this.makeCommand(this.SWITCH_AUDIO, opt.input, opt.output);
+  //       break;
+  //
+  //     case "switch_video":
+  //       cmd = this.makeCommand(this.SWITCH_VIDEO, opt.input, opt.output);
+  //       break;
+  //
+  //     case "switch_audio_dynamic":
+  //       cmd = this.makeCommand(this.SWITCH_AUDIO, opt.input, opt.output);
+  //       break;
+  //
+  //     case "switch_video_dynamic":
+  //       cmd = this.makeCommand(this.SWITCH_VIDEO, opt.input, opt.output);
+  //       break;
+  //
+  //     case "store_setup":
+  //       cmd = this.makeCommand(this.STORE_SETUP, opt.setup, 0 /* STORE */);
+  //       break;
+  //
+  //     case "delete_setup":
+  //       // Not a bug. The command to delete a setup is to store it.
+  //       cmd = this.makeCommand(this.STORE_SETUP, opt.setup, 1 /* DELETE */);
+  //       break;
+  //
+  //     case "recall_setup":
+  //       cmd = this.makeCommand(this.RECALL_SETUP, opt.setup, 0);
+  //       break;
+  //
+  //     case "front_panel":
+  //       cmd = this.makeCommand(this.FRONT_PANEL, opt.status, 0);
+  //       break;
+  //   }
+  //
+  //   if (cmd) {
+  //     this.send(cmd);
+  //   }
+  // }
 }
 
 runEntrypoint(KramerInstance);
