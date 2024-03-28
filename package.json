@@ -22,5 +22,11 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-kramer-matrix.git"
+	},
+	"dependencies": {
+		"@companion-module/base": "~1.7.0"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^1.5.0"
 	}
 }
