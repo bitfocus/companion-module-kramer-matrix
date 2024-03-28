@@ -397,7 +397,7 @@ class KramerInstance extends InstanceBase {
   config_fields() {
     return [
       {
-        type: "text",
+        type: "static-text",
         id: "info",
         width: 12,
         label: "Information",
@@ -435,7 +435,7 @@ class KramerInstance extends InstanceBase {
         ],
       },
       {
-        type: "text",
+        type: "static-text",
         id: "info",
         width: 12,
         label: "Counts",
@@ -468,7 +468,7 @@ class KramerInstance extends InstanceBase {
         regex: "/^\\d*$/",
       },
       {
-        type: "text",
+        type: "static-text",
         id: "info",
         width: 12,
         label: "Customize",
@@ -715,13 +715,15 @@ class KramerInstance extends InstanceBase {
         name: "Switch Video (Dynamic)",
         options: [
           {
-            type: "textwithvariables",
+            type: "textinput",
+            useVariables: true,
             name: "Input #",
             id: "input",
             default: "0",
           },
           {
-            type: "textwithvariables",
+            type: "textinput",
+            useVariables: true,
             name: "Output #",
             id: "output",
             default: "0",
@@ -740,14 +742,16 @@ class KramerInstance extends InstanceBase {
         name: "Switch Audio (Dynamic)",
         options: [
           {
-            type: "textwithvariables",
+            type: "textinput",
+            useVariables: true,
             name: "Input #",
             id: "input",
             default: "0",
             regex: "/^\\d*$/",
           },
           {
-            type: "textwithvariables",
+            type: "textinput",
+            useVariables: true,
             name: "Output #",
             id: "output",
             default: "0",
