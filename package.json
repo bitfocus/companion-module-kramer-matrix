@@ -1,24 +1,11 @@
 {
 	"name": "kramer-matrix",
 	"version": "1.2.3",
-	"api_version": "1.0.0",
-	"keywords": [
-		"Matrix"
-	],
-	"manufacturer": "Kramer",
-	"product": "Matrix (Generic)",
-	"shortname": "kramer-matrix",
-	"description": "Module to control a Kramer Matrix",
 	"main": "index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"author": "Steve Therrien <git@stevetherrien.ca>",
-	"homepage": "https://github.com/bitfocus/companion-module-kramer-matrix#readme",
 	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/bitfocus/companion-module-kramer-matrix/issues"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-kramer-matrix.git"
