@@ -4,9 +4,7 @@ const {
   runEntrypoint,
   UDPHelper,
   TCPHelper,
-} = require(
-  "@companion-module/base",
-);
+} = require("@companion-module/base");
 
 class KramerInstance extends InstanceBase {
   constructor(internal) {
@@ -100,7 +98,8 @@ class KramerInstance extends InstanceBase {
 
     // Reconnect to the matrix if the IP or protocol changed
     if (
-      this.config.host !== config.host || this.isConnected() === false ||
+      this.config.host !== config.host ||
+      this.isConnected() === false ||
       this.config.connectionProtocol !== config.connectionProtocol
     ) {
       // Have to set the new host IP/protocol before making the connection.
@@ -503,7 +502,7 @@ class KramerInstance extends InstanceBase {
    * Cleanup when the module gets deleted.
    */
   async destroy() {
-    this.log('debug', 'destroy');
+    this.log("debug", "destroy");
 
     if (this.socket !== undefined) {
       this.socket.destroy();
@@ -588,7 +587,7 @@ class KramerInstance extends InstanceBase {
                 default:
                   this.log(
                     "info",
-                    "Audio can only be switched using the #ROUTE command.",
+                    "Audio can only be switched using the #ROUTE command."
                   );
                   return null;
               }
@@ -623,7 +622,7 @@ class KramerInstance extends InstanceBase {
             case this.DELETE_SETUP:
               this.log(
                 "info",
-                "Deleting presets is not supported on Protocol 3000 matrices.",
+                "Deleting presets is not supported on Protocol 3000 matrices."
               );
               return;
 
@@ -656,7 +655,7 @@ class KramerInstance extends InstanceBase {
     };
 
     this.setActionDefinitions({
-      "switch_audio": {
+      switch_audio: {
         name: "Switch Audio",
         options: [
           {
@@ -678,13 +677,13 @@ class KramerInstance extends InstanceBase {
           let cmd = makeCommand(
             this.SWITCH_AUDIO,
             event.options.input,
-            event.options.output,
+            event.options.output
           );
-          this.log('debug', `Kramer command: ${cmd}`)
+          this.log("debug", `Kramer command: ${cmd}`);
           this.socket.send(cmd);
         },
       },
-      "switch_video": {
+      switch_video: {
         name: "Switch Video",
         options: [
           {
@@ -706,12 +705,12 @@ class KramerInstance extends InstanceBase {
           let cmd = makeCommand(
             this.SWITCH_VIDEO,
             event.options.input,
-            event.options.output,
+            event.options.output
           );
           this.send(cmd);
         },
       },
-      "switch_video_dynamic": {
+      switch_video_dynamic: {
         name: "Switch Video (Dynamic)",
         options: [
           {
@@ -730,17 +729,17 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
-          const input = parseInt(this.parseVariablesInString(event.options.input));
-          const output = parseInt(this.parseVariablesInString(event.options.output));
-          let cmd = makeCommand(
-            this.SWITCH_VIDEO,
-            input,
-            output,
+          const input = parseInt(
+            this.parseVariablesInString(event.options.input)
           );
+          const output = parseInt(
+            this.parseVariablesInString(event.options.output)
+          );
+          let cmd = makeCommand(this.SWITCH_VIDEO, input, output);
           this.send(cmd);
         },
       },
-      "switch_audio_dynamic": {
+      switch_audio_dynamic: {
         name: "Switch Audio (Dynamic)",
         options: [
           {
@@ -761,17 +760,17 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
-          const input = parseInt(this.parseVariablesInString(event.options.input));
-          const output = parseInt(this.parseVariablesInString(event.options.output));
-          let cmd = makeCommand(
-            this.SWITCH_AUDIO,
-            input,
-            output,
+          const input = parseInt(
+            this.parseVariablesInString(event.options.input)
           );
+          const output = parseInt(
+            this.parseVariablesInString(event.options.output)
+          );
+          let cmd = makeCommand(this.SWITCH_AUDIO, input, output);
           this.send(cmd);
         },
       },
-      "recall_setup": {
+      recall_setup: {
         name: "Recall Preset",
         options: [
           {
@@ -783,15 +782,11 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
-          let cmd = makeCommand(
-            this.RECALL_SETUP,
-            event.options.setup,
-            0,
-          );
+          let cmd = makeCommand(this.RECALL_SETUP, event.options.setup, 0);
           this.send(cmd);
         },
       },
-      "store_setup": {
+      store_setup: {
         name: "Store Preset",
         options: [
           {
@@ -806,12 +801,12 @@ class KramerInstance extends InstanceBase {
           let cmd = makeCommand(
             this.STORE_SETUP,
             event.options.setup,
-            0, /* STORE */
+            0 /* STORE */
           );
           this.send(cmd);
         },
       },
-      "delete_setup": {
+      delete_setup: {
         name: "Delete Preset",
         options: [
           {
@@ -828,12 +823,12 @@ class KramerInstance extends InstanceBase {
           let cmd = makeCommand(
             this.STORE_SETUP,
             event.options.setup,
-            1, /* DELETE */
+            1 /* DELETE */
           );
           this.send(cmd);
         },
       },
-      "front_panel": {
+      front_panel: {
         name: "Front Panel Lock",
         options: [
           {
@@ -848,11 +843,7 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
-          let cmd = makeCommand(
-            this.FRONT_PANEL,
-            event.options.status,
-            0,
-          );
+          let cmd = makeCommand(this.FRONT_PANEL, event.options.status, 0);
           this.send(cmd);
         },
       },

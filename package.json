@@ -1,19 +1,23 @@
 {
-	"name": "kramer-matrix",
-	"version": "2.0.0",
-	"main": "index.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-kramer-matrix.git"
-	},
-	"dependencies": {
-		"@companion-module/base": "~1.7.0"
-	},
-	"devDependencies": {
-		"@companion-module/tools": "^1.5.0"
-	}
+  "name": "kramer-matrix",
+  "version": "2.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
+    "lint": "yarn lint:raw .",
+    "format": "prettier -w ."
+  },
+  "prettier": "@companion-module/tools/.prettierrc.json",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitfocus/companion-module-kramer-matrix.git"
+  },
+  "dependencies": {
+    "@companion-module/base": "~1.7.0"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^1.5.0"
+  }
 }
