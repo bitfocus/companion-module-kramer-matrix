@@ -95,11 +95,8 @@ class KramerInstance extends InstanceBase {
    *
    * @param config         The new config object
    */
-  async configUpdated() {
-    // Convert to a number. Convert to 0 if empty.
-    config.inputCount = parseInt(config.inputCount || 0);
-    config.outputCount = parseInt(config.outputCount || 0);
-    config.setupsCount = parseInt(config.setupsCount || 0);
+  async configUpdated(config) {
+    this.config = config;
 
     // Reconnect to the matrix if the IP or protocol changed
     if (
@@ -112,18 +109,15 @@ class KramerInstance extends InstanceBase {
       this.init_connection();
     }
 
-    // Update the rest of the config
-    this.config = config;
-
     // If any of the values are '0' then attempt to auto-detect:
     let detectCapabilities = [];
-    if (config.inputCount === 0) {
+    if (this.config.inputCount === 0) {
       detectCapabilities.push(this.CAPS_VIDEO_INPUTS);
     }
-    if (config.outputCount === 0) {
+    if (this.config.outputCount === 0) {
       detectCapabilities.push(this.CAPS_VIDEO_OUTPUTS);
     }
-    if (config.setupsCount === 0) {
+    if (this.config.setupsCount === 0) {
       detectCapabilities.push(this.CAPS_SETUPS);
     }
 
@@ -452,7 +446,7 @@ class KramerInstance extends InstanceBase {
         type: "textinput",
         id: "inputCount",
         label: "Input count",
-        default: "",
+        default: "0",
         width: 2,
         regex: "/^\\d*$/",
       },
@@ -460,7 +454,7 @@ class KramerInstance extends InstanceBase {
         type: "textinput",
         id: "outputCount",
         label: "Output count",
-        default: "",
+        default: "0",
         width: 2,
         regex: "/^\\d*$/",
       },
@@ -468,7 +462,7 @@ class KramerInstance extends InstanceBase {
         type: "textinput",
         id: "setupsCount",
         label: "Preset count",
-        default: "",
+        default: "0",
         width: 2,
         regex: "/^\\d*$/",
       },
