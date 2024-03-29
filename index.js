@@ -154,7 +154,11 @@ class KramerInstance extends InstanceBase {
 
       // Increment the counter to show we're waiting for a response from a capability.
       this.capabilityWaitingResponsesCounter++;
-      this.send(cmd);
+      try {
+        this.socket.send(cmd);
+      } catch (error) {
+        this.log("error", `${error}`);
+      }
     }
   }
 
@@ -348,27 +352,6 @@ class KramerInstance extends InstanceBase {
       this.saveConfig(this.config);
     }
   }
-
-  /**
-   * Sends the command to the Kramer matrix.
-   *
-   * @param cmd      The command to send (ArrayBuffer)
-   * @returns        Success state of writing to the socket
-   */
-  // async send(cmd) {
-  //   this.log('debug', 'send(cmd)')
-  //   if (this.isConnected()) {
-  //     this.log("debug", "sending", cmd, "to", this.config.host);
-  //     const response = await this.socket.send(cmd);
-  //     if (response.ok) {
-  //       return true;
-  //     }
-  //   } else {
-  //     this.log("debug", "Socket not connected");
-  //   }
-  //
-  //   return false;
-  // }
 
   /**
    * Returns if the socket is connected.
@@ -680,7 +663,11 @@ class KramerInstance extends InstanceBase {
             event.options.output
           );
           this.log("debug", `Kramer command: ${cmd}`);
-          this.socket.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       switch_video: {
@@ -707,7 +694,11 @@ class KramerInstance extends InstanceBase {
             event.options.input,
             event.options.output
           );
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       switch_video_dynamic: {
@@ -736,7 +727,11 @@ class KramerInstance extends InstanceBase {
             this.parseVariablesInString(event.options.output)
           );
           let cmd = makeCommand(this.SWITCH_VIDEO, input, output);
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       switch_audio_dynamic: {
@@ -767,7 +762,11 @@ class KramerInstance extends InstanceBase {
             this.parseVariablesInString(event.options.output)
           );
           let cmd = makeCommand(this.SWITCH_AUDIO, input, output);
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       recall_setup: {
@@ -783,7 +782,11 @@ class KramerInstance extends InstanceBase {
         ],
         callback: async (event) => {
           let cmd = makeCommand(this.RECALL_SETUP, event.options.setup, 0);
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       store_setup: {
@@ -803,7 +806,11 @@ class KramerInstance extends InstanceBase {
             event.options.setup,
             0 /* STORE */
           );
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       delete_setup: {
@@ -825,7 +832,11 @@ class KramerInstance extends InstanceBase {
             event.options.setup,
             1 /* DELETE */
           );
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
       front_panel: {
@@ -844,7 +855,11 @@ class KramerInstance extends InstanceBase {
         ],
         callback: async (event) => {
           let cmd = makeCommand(this.FRONT_PANEL, event.options.status, 0);
-          this.send(cmd);
+          try {
+            this.socket.send(cmd);
+          } catch (error) {
+            this.log("error", `${error}`);
+          }
         },
       },
     });
