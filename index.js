@@ -124,7 +124,7 @@ class KramerInstance extends InstanceBase {
       this.PromiseConnected.then(() => {
         // Once connected, check the capabilities of the matrix if needed.
         this.detectCapabilities(detectCapabilities);
-      }).catch((err) => {
+      }).catch((_) => {
         // Error while connecting. The error message is already logged, but Node requires
         //  the rejected promise to be handled.
       });
@@ -211,7 +211,7 @@ class KramerInstance extends InstanceBase {
         // Auto-resolve the promise if this is a UDP connection.
         resolve();
       }
-    }).catch((err) => {
+    }).catch((_) => {
       // The error is already logged, but Node requires all rejected promises to be caught.
     });
 
