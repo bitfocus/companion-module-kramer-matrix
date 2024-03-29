@@ -362,16 +362,20 @@ class KramerInstance extends InstanceBase {
    * @param cmd      The command to send (ArrayBuffer)
    * @returns        Success state of writing to the socket
    */
-  send(cmd) {
-    if (this.isConnected()) {
-      this.log("debug", "sending", cmd, "to", this.config.host);
-      return this.socket.send(cmd);
-    } else {
-      this.log("debug", "Socket not connected");
-    }
-
-    return false;
-  }
+  // async send(cmd) {
+  //   this.log('debug', 'send(cmd)')
+  //   if (this.isConnected()) {
+  //     this.log("debug", "sending", cmd, "to", this.config.host);
+  //     const response = await this.socket.send(cmd);
+  //     if (response.ok) {
+  //       return true;
+  //     }
+  //   } else {
+  //     this.log("debug", "Socket not connected");
+  //   }
+  //
+  //   return false;
+  // }
 
   /**
    * Returns if the socket is connected.
