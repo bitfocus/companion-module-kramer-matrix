@@ -736,10 +736,12 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
+          const input = parseInt(this.parseVariablesInString(event.options.input));
+          const output = parseInt(this.parseVariablesInString(event.options.output));
           let cmd = makeCommand(
             this.SWITCH_VIDEO,
-            event.options.input,
-            event.options.output,
+            input,
+            output,
           );
           this.send(cmd);
         },
@@ -765,10 +767,12 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
+          const input = parseInt(this.parseVariablesInString(event.options.input));
+          const output = parseInt(this.parseVariablesInString(event.options.output));
           let cmd = makeCommand(
             this.SWITCH_AUDIO,
-            event.options.input,
-            event.options.output,
+            input,
+            output,
           );
           this.send(cmd);
         },
