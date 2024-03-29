@@ -381,10 +381,10 @@ class KramerInstance extends InstanceBase {
   isConnected() {
     switch (this.config.connectionProtocol) {
       case this.CONNECT_TCP:
-        return this.socket !== undefined && this.socket.connected;
+        return this.socket.isConnected();
 
       case this.CONNECT_UDP:
-        return this.socket !== undefined;
+        return true;
     }
 
     return false;
@@ -682,7 +682,8 @@ class KramerInstance extends InstanceBase {
             event.options.input,
             event.options.output,
           );
-          this.send(cmd);
+          this.log('debug', `Kramer command: ${cmd}`)
+          this.socket.send(cmd);
         },
       },
       "switch_video": {
