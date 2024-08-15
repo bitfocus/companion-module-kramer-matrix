@@ -720,17 +720,18 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
-          const input = parseInt(
-            this.parseVariablesInString(event.options.input)
-          );
-          const output = parseInt(
-            this.parseVariablesInString(event.options.output)
-          );
-          let cmd = makeCommand(this.SWITCH_VIDEO, input, output);
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
+          let input = parseInt(await this.parseVariablesInString(String(event.options.input).trim()));
+          let output = parseInt(await this.parseVariablesInString(String(event.options.output).trim()));
+          if (isNaN(input) || isNaN(output)){
+            this.log('error', 'Switch Video: Input and Output must both be integers.');
+          }
+          else {
+            let cmd = makeCommand(this.SWITCH_VIDEO, input, output);
+            try {
+              this.socket.send(cmd);
+            } catch (error) {
+              this.log("error", `${error}`);
+            }
           }
         },
       },
@@ -755,17 +756,18 @@ class KramerInstance extends InstanceBase {
           },
         ],
         callback: async (event) => {
-          const input = parseInt(
-            this.parseVariablesInString(event.options.input)
-          );
-          const output = parseInt(
-            this.parseVariablesInString(event.options.output)
-          );
-          let cmd = makeCommand(this.SWITCH_AUDIO, input, output);
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
+          let input = parseInt(await this.parseVariablesInString(String(event.options.input).trim()));
+          let output = parseInt(await this.parseVariablesInString(String(event.options.output).trim()));
+          if (isNaN(input) || isNaN(output)){
+            this.log('error', 'Switch Audio: Input and Output must both be integers.');
+          }
+          else {
+            let cmd = makeCommand(this.SWITCH_AUDIO, input, output);
+            try {
+              this.socket.send(cmd);
+            } catch (error) {
+              this.log("error", `${error}`);
+            }
           }
         },
       },
