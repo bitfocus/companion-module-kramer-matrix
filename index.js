@@ -643,14 +643,14 @@ class KramerInstance extends InstanceBase {
         options: [
           {
             type: "dropdown",
-            name: "Input #",
+            label: "Input #",
             id: "input",
             default: "0",
             choices: inputOpts,
           },
           {
             type: "dropdown",
-            name: "Output #",
+            label: "Output #",
             id: "output",
             default: "0",
             choices: outputOpts,
@@ -675,14 +675,14 @@ class KramerInstance extends InstanceBase {
         options: [
           {
             type: "dropdown",
-            name: "Input #",
+            label: "Input #",
             id: "input",
             default: "0",
             choices: inputOpts,
           },
           {
             type: "dropdown",
-            name: "Output #",
+            label: "Output #",
             id: "output",
             default: "0",
             choices: outputOpts,
@@ -707,14 +707,14 @@ class KramerInstance extends InstanceBase {
           {
             type: "textinput",
             useVariables: true,
-            name: "Input #",
+            label: "Input #",
             id: "input",
             default: "0",
           },
           {
             type: "textinput",
             useVariables: true,
-            name: "Output #",
+            label: "Output #",
             id: "output",
             default: "0",
           },
@@ -740,7 +740,7 @@ class KramerInstance extends InstanceBase {
           {
             type: "textinput",
             useVariables: true,
-            name: "Input #",
+            label: "Input #",
             id: "input",
             default: "0",
             regex: "/^\\d*$/",
@@ -748,7 +748,7 @@ class KramerInstance extends InstanceBase {
           {
             type: "textinput",
             useVariables: true,
-            name: "Output #",
+            label: "Output #",
             id: "output",
             default: "0",
             regex: "/^\\d*$/",
@@ -774,7 +774,7 @@ class KramerInstance extends InstanceBase {
         options: [
           {
             type: "dropdown",
-            name: "Preset",
+            label: "Preset",
             id: "setup",
             default: "1",
             choices: setups,
@@ -794,7 +794,7 @@ class KramerInstance extends InstanceBase {
         options: [
           {
             type: "dropdown",
-            name: "Preset",
+            label: "Preset",
             id: "setup",
             default: "1",
             choices: setups,
@@ -818,7 +818,7 @@ class KramerInstance extends InstanceBase {
         options: [
           {
             type: "dropdown",
-            name: "Preset",
+            label: "Preset",
             id: "setup",
             default: "1",
             choices: setups,
@@ -844,7 +844,7 @@ class KramerInstance extends InstanceBase {
         options: [
           {
             type: "dropdown",
-            name: "Status",
+            label: "Status",
             id: "status",
             default: "0",
             choices: [
