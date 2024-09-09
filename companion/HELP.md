@@ -1,6 +1,7 @@
 # Kramer Matrix
 
 This module lets you to control Kramer Matrices using [Protocol 2000 (PDF)](https://k.kramerav.com/downloads/protocols/protocol_2000_rev0_51.pdf) or [Protocol 3000 (PDF)](https://k.kramerav.com/downloads/protocols/protocol_3000_3.0_master_user.pdf).
+It has been upgraded and tested on TaylorMade matrix
 
 ## Instance Configuration
 
@@ -8,7 +9,8 @@ _Consult your product manual for information about how to set an IP address and 
 
 1. Configure your matrix with an IP address and enter it into the `Target IP` field.
 2. Choose the type of Kramer communication protocol your matrix uses, either Protocol 2000 or Protocol 3000.
-3. Choose whether your matrix uses TCP (port 5000) or UDP (port 50000).
+3. Choose whether your matrix uses TCP or UDP.
+4. Choose the port used by your machine. Default is 5000 for TCP and 50000 for UDP
 
 Enter the number of inputs, outputs, and presets your matrix supports. The module can auto-detect these settings if you leave those fields empty and apply your changes. Check the **Info** log in Companion to confirm the values were detected correctly. The `Counts` fields will show as empty until you refresh the page.
 
@@ -41,10 +43,12 @@ You can route a specific input to an output, an input to all outputs, or disconn
 ### Switch Audio (Dynamic)
 
 Changes the audio routing of inputs to outputs, but allows **custom variables** to define those inputs/outputs. See Companion's **Getting started** guide for more information.
+Expressions using variables are calculated
 
 ### Switch Video (Dynamic)
 
 Changes the video routing of inputs to outputs, but allows **custom variables** to define those inputs/outputs. See Companion's **Getting started** guide for more information.
+Expressions using variables are calculated
 
 ### Recall Preset
 
@@ -65,3 +69,31 @@ Deletes a stored preset (_not supported on Protocol 3000 matrices_).
 ### Front Panel
 
 Allows you to lock or unlock the matrix's front panel. A locked front panel doesn't stop Companion from controlling the matrix.
+
+### Select Output / Select Output (Dynamic)
+
+Select output to switch in Source -> Destination / Take mode.
+
+### Select Input / Select Input (Dynamic)
+
+Select input to switch in Source -> Destination / Take mode.
+
+### Take
+
+Route selected input to selected output
+
+### Clear
+
+Unselect source and destination
+
+### Request Audio / Request Audio (Dynamic)
+
+Request audio source routed to specified destination and populate internal variables. Output 0 requests all destinations
+
+### Request Video / Request Video (Dynamic)
+
+Request video source routed to specified destinationnd populate internal variables. Output 0 requests all destinations
+
+### Replace video input A by video input B
+
+Route video input B to all outputs previously receiving video input A.
