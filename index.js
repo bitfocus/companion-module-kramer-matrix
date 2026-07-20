@@ -591,7 +591,7 @@ class KramerInstance extends InstanceBase {
 
               switch (this.config.customizeRoute) {
                 case this.ROUTE_ROUTE:
-                  return `#ROUTE 0,${paramB},${paramA}\r`;
+                  return `#ROUTE 12,${paramB},${paramA}\r`;
 
                 case this.ROUTE_VID:
                 default:
