@@ -21,6 +21,9 @@ class KramerInstance extends InstanceBase {
   FRONT_PANEL = 30;
   DEFINE_MACHINE = 62;
 
+  ERROR_2000 = 80; // ERROR / BUSY
+  ERROR_3000 = "ERR"; // ERR XX
+
   CAPS_VIDEO_INPUTS = 1;
   CAPS_VIDEO_OUTPUTS = 2;
   CAPS_SETUPS = 3;
@@ -34,8 +37,8 @@ class KramerInstance extends InstanceBase {
   CONNECT_UDP = "UDP";
 
   // Define the possible Protocol 3000 commands to route video:
-  ROUTE_ROUTE = "ROUTE";
-  ROUTE_VID = "VID";
+  ROUTE_ROUTE = "ROUTE"; // e.g. VP-440
+  ROUTE_VID = "VID"; // e.g. VS-44HN
 
   // Define the possible parameters to disconnect an output:
   DISCONNECT_0 = "0";
@@ -50,6 +53,9 @@ class KramerInstance extends InstanceBase {
 
   // The number of capabilities we're waiting responses for before saving the config.
   capabilityWaitingResponsesCounter = 0;
+
+  // Model
+  matrixModel = null;
 
   /**
    * Initializes the module and try to detect capabilities.
@@ -86,6 +92,7 @@ class KramerInstance extends InstanceBase {
     }
 
     this.init_connection();
+    this.requestMatrixInformation();
   }
 
   /**
@@ -134,6 +141,7 @@ class KramerInstance extends InstanceBase {
     this.actions();
   }
 
+
   /**
    * Detects the number of inputs/outputs of the matrix.
    *
@@ -154,13 +162,84 @@ class KramerInstance extends InstanceBase {
 
       // Increment the counter to show we're waiting for a response from a capability.
       this.capabilityWaitingResponsesCounter++;
-      try {
-        this.socket.send(cmd);
-      } catch (error) {
-        this.log("error", `${error}`);
-      }
+      
+      this.sendData(cmd);
     }
   }
+
+
+  /**
+   * Request matrix information.
+   */
+  requestMatrixInformation() {
+
+      switch (this.config.protocol) {
+        case this.PROTOCOL_2000:
+          // No matrix information is currently requested from a Protocol 2000 device
+          break;
+
+        case this.PROTOCOL_3000:
+          // Matrix information requested from a Protocol 3000 device:
+          // MODEL?
+          // VERSION?
+          // PROT-VER?
+
+          let cmd = "#MODEL?\r";
+          this.sendData(cmd);
+
+          cmd = "#VERSION?\r";
+          this.sendData(cmd);
+
+          cmd = "#PROT-VER?\r";
+          this.sendData(cmd);
+
+          break;
+      }
+
+  }
+
+
+  /**
+   * Send a command to the connected matrix
+   * @param data     The data (command) to be sent to the connected matrix
+   */
+  sendData(data) {
+    // logging data
+    this.logSendData(data);
+
+    // sending data
+    try {
+      this.socket.send(data);
+    } catch (error) {
+      this.log("error", `${error}`);
+    }
+  }
+
+
+  /**
+   * Logs the protocol 2000 or 3000 data in readable format.
+   *
+   * @param data     The data to be sent
+   */
+  logSendData(data) {
+    switch (this.config.protocol) {
+      case this.PROTOCOL_2000:
+        let hexMes = "";
+        for (let i = 0; i < 3; i++) {
+          hexMes += (data[i].toString(16) + ',');
+        }
+        hexMes += data[3].toString(16);
+        this.log('debug', 'Sending Protocol 2000: ' + hexMes);
+
+        break;
+
+      case this.PROTOCOL_3000:
+        this.log("debug", `Sending Protocol 3000: ${data}`);
+
+        break;
+    }
+  }
+
 
   /**
    * Connect to the matrix over TCP port 5000 or UDP port 50000.
@@ -180,15 +259,17 @@ class KramerInstance extends InstanceBase {
     this.PromiseConnected = new Promise((resolve, reject) => {
       switch (this.config.connectionProtocol) {
         case this.CONNECT_TCP:
+          this.log("info", `init_connection: ${this.config.host} via ${this.config.connectionProtocol} on port 5000`);
           this.socket = new TCPHelper(this.config.host, 5000, {
             reconnect_interval: 5000,
           });
           break;
 
         case this.CONNECT_UDP:
+          this.log("info", `init_connection: ${this.config.host} via ${this.config.connectionProtocol} on port 50000`);
           this.socket = new UDPHelper(this.config.host, 50000);
           this.updateStatus("ok");
-          this.log("debug", "Connected (UDP)");
+          this.log("info", "init_connection: Connected (UDP)");
           break;
       }
 
@@ -207,7 +288,7 @@ class KramerInstance extends InstanceBase {
       this.socket.on("connect", () => {
         // This event only fires for TCP connections.
         this.updateStatus("ok");
-        this.log("debug", "Connected (TCP)");
+        this.log("info", "init_connection: Connected (TCP)");
         resolve();
       });
 
@@ -233,12 +314,26 @@ class KramerInstance extends InstanceBase {
 
       switch (this.config.protocol) {
         case this.PROTOCOL_2000:
-          this.receivedData2000(data);
+          //this.receivedData2000(data);
+          let chunk = data.slice(0, 4);
+          if (chunk[0] < this.MSB) {
+            let cmdstring = '';
+
+            for (let i = 0; i < 3; i++) {
+              cmdstring += (Number(chunk[i]) + ',');
+            }
+            cmdstring += (Number(chunk[3]));
+            
+            this.log('debug', 'Received Protocol 2000 data: ' + cmdstring);
+            this.receivedData2000(chunk);
+          }
           break;
 
         case this.PROTOCOL_3000:
           // data may come in as a multiline response to the request. Handle
           //  each line separately.
+          // TODO: Add support for commands (e.g. HELP) returning multi-line responses
+          this.log('debug', 'Received Protocol 3000 data: ' + data);
           data = data.toString().split("\r\n");
 
           for (var i = 0; i < data.length; i++) {
@@ -261,6 +356,7 @@ class KramerInstance extends InstanceBase {
     //  significant bit on. If we turn that second bit off, we can compare the
     //  first byte of the response to the first byte of the command sent to see
     //  what the response is for.
+
     switch (data[0] ^ 64) {
       case this.DEFINE_MACHINE:
         // Turn off the MSB to get the actual count of this capability.
@@ -294,6 +390,27 @@ class KramerInstance extends InstanceBase {
         }
         break;
     }
+
+    // Log any error message
+    //
+    // Protocol 2000 Error messages
+    //
+    // 0 - Error
+    // 1 - Invalid Instruction
+    // 2 - Out of range
+    // 3 - Machine busy
+    // 4 - No card
+    // 5 - Adress out of range
+    // 6 - Data out of range
+    // 7 - Machine busy
+
+    switch (data[0]) {
+      case this.ERROR_2000:
+        let count = data[2] ^ this.MSB;
+        this.log("debug", `Received Protocol 2000 Error / Busy: ${count}`);
+        break;
+    }
+
   }
 
   /**
@@ -314,6 +431,14 @@ class KramerInstance extends InstanceBase {
     }
 
     switch (response[1]) {
+      case "MODEL":
+        let match = data.match(/[A-Z]+-\d+/);
+        this.matrixModel = match[0];
+        if (match) {
+          this.log("debug", `Model: ${this.matrixModel}`);
+        }
+        break;
+
       case "INFO-IO":
         // response[2] will look like: IN 11,OUT 9
         var io = response[2].match(/IN (\d+),OUT (\d+)/);
@@ -345,12 +470,53 @@ class KramerInstance extends InstanceBase {
         break;
     }
 
+
     // Save the config if all the requests responded.
     if (this.capabilityWaitingResponsesCounter === 0) {
       // Update the actions now that the new capabilities have been stored.
       this.actions();
       this.saveConfig(this.config);
     }
+
+    // Log any error message e.g. ~01@ROUTE ERR 003 is Parameter out of range
+    //
+    // Protocol 3000 Error messages
+    //
+    // P3K_NO_ERROR 	0 	No error 
+    // ERR_PROTOCOL_SYNTAX 	1 	Protocol syntax 
+    // ERR_COMMAND_NOT_AVAILABLE 	2 	Command not available 
+    // ERR_PARAMETER_OUT_OF_RANGE 	3 	Parameter out of range 
+    // ERR_UNAUTHORIZED_ACCESS 	4 	Unauthorized access 
+    // ERR_INTERNAL_FW_ERROR 	5 	Internal FW error 
+    // ERR_BUSY 	6 	Protocol busy 
+    // ERR_WRONG_CRC 	7 	Wrong CRC 
+    // ERR_TIMEDOUT 	8 	Timeout 
+    // ERR_RESERVED 	9 	(Reserved) 
+    // ERR_FW_NOT_ENOUGH_SPACE 	10 	Not enough space for data (firmware, FPGA…) 
+    // ERR_FS_NOT_ENOUGH_SPACE 	11 	Not enough space - file system 
+    // ERR_FS_FILE_NOT_EXISTS 	12 	File does not exist 
+    // ERR_FS_FILE_CANT_CREATED 	13 	File can’t be created 
+    // ERR_FS_FILE_CANT_OPEN 	14 	File can’t open 
+    // ERR_RESERVED_1 	15 	(Reserved) 
+    // ERR_RESERVED_2 	16 	(Reserved) 
+    // ERR_RESERVED_3 	17 	(Reserved) 
+    // ERR_RESERVED_4 	18 	(Reserved) 
+    // ERR_RESERVED_5 	19 	(Reserved) 
+    // ERR_RESERVED_6 	20 	(Reserved) 
+    // ERR_PACKET_CRC 	21 	Packet CRC error 
+    // ERR_PACKET_MISSED 	22 	Packet number isn't expected (missing packet) 
+    // ERR_PACKET_SIZE 	23 	Packet size is wrong 
+    // ERR_RESERVED_7 	24 	(Reserved) 
+    // ERR_RESERVED_8 	25 	(Reserved) 
+    // ERR_RESERVED_9 	26 	(Reserved) 
+    // ERR_RESERVED_10 	27 	(Reserved) 
+    // ERR_RESERVED_11 	28 	(Reserved) 
+    // ERR_RESERVED_12 	29 	(Reserved) 
+    // ERR_EDID_CORRUPTED 	30 	EDID corrupted 
+    // ERR_NON_LISTED 	31 	Device specific errors 
+    // ERR_SAME_CRC 	32 	File has the same CRC – no changed 
+    // ERR_WRONG_MODE 	33 	Wrong operation mode 
+    // ERR_NOT_CONFIGURED 	34 	Device/chip was not initialized 
   }
 
   /**
@@ -518,7 +684,7 @@ class KramerInstance extends InstanceBase {
     }
 
     /**
-     * Formats the command as per the Kramer 2000 protocol.
+     * Formats the command as per the Kramer 2000 or 3000 protocol.
      *
      * @param instruction    String or base 10 instruction code for the command
      * @param paramA         String or base 10 parameter A for the instruction
@@ -565,6 +731,7 @@ class KramerInstance extends InstanceBase {
 
               switch (this.config.customizeRoute) {
                 case this.ROUTE_ROUTE:
+                  // TODO: Shall counting form 0 (zero) and layer 12 be supported?
                   return `#ROUTE 1,${paramB},${paramA}\r`;
 
                 default:
@@ -591,11 +758,70 @@ class KramerInstance extends InstanceBase {
 
               switch (this.config.customizeRoute) {
                 case this.ROUTE_ROUTE:
-                  return `#ROUTE 0,${paramB},${paramA}\r`;
+                  let paramLayer = 1; // Default routing layer in Protocol 3000
+                  //
+                  // VP-440
+                  // #ROUTE P1,P2,P3<CR>
+                  // P1 (Layer number) - 12=Video+Audio
+                  // P2 - 1=Scaler
+                  // P3 (Route from, valid values are in accordance to the selected layer and Route to selected according to P1 and P2)
+                  // video inputs = 0 (HDMI 1), 1 (HDMI 2), 2 (HDMI 3), 3 (HDMI 4), 4 (PC 1), 5 (PC 2)
+                  //
+                  // VP-440X
+                  // #ROUTE layer_type,out_index,in_index<CR>
+                  // layer_type Layer Enumeration
+                  // 1 - Video+Audio
+                  // out_index - 1
+                  // in_index - Source id
+                  // 1 - HDMI 1
+                  // 2 - HDMI 2
+                  // 3 - HDMI 3
+                  // 4 - HDMI 4
+                  // 5 - PC
+                  //
+                  // VP-428H2
+                  // P1 - Layer number: 12 (Video+Audio)
+                  // P2 - 1 (Scaler)
+                  // P3 - Video inputs: 0 (DP), 1 (HDMI), 2 (PC)
+                  //
+                  // VP-444
+                  // P1 (Layer number) -12=Video+Audio
+                  // P2 - 1=Scaler
+                  // P3 (Route from, valid values are in accordance to the selected layer and Route to selected according to
+                  // P1 and P2) - video inputs = (0~11);
+                  //
+                  // VP-440H2
+                  // #ROUTE layer,dest,src<CR>
+                  // layer - 1 (video + audio)
+                  // dest - 1 (HDMI OUT)
+                  // src - input number: 0 (HDMI IN 1), 1 (HDMI IN 2), 2 (HDMI IN 3), 3 (HDBT IN), 4 (PC IN)
+
+                  switch (this.matrixModel) {
+                    case "VP-428H2":
+                    case "VP-440":
+                    case "VP-444":
+                      paramLayer = 12; // Routing layer 12 is used
+                      paramA--; // Input numbering starts on 0 (zero)
+                      break;
+
+                    case "VP-440H2": //
+                      paramA--; // Input numbering starts on 0 (zero)
+                      break;
+
+                    default:
+                      break;
+                  }
+                  return `#ROUTE ${paramLayer},${paramB},${paramA}\r`;
 
                 case this.ROUTE_VID:
                 default:
+                  // #VID in>out<CR>
+                  // in - input number or '0' to disconnect output
+                  // > - connection character between in and out parameters
+                  // out - output number or '*' for all outputs
+                  // #VID 1>3<CR>
                   return `#VID ${paramA}>${paramB}\r`;
+
               }
               break;
 
@@ -662,12 +888,7 @@ class KramerInstance extends InstanceBase {
             event.options.input,
             event.options.output
           );
-          this.log("debug", `Kramer command: ${cmd}`);
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
-          }
+          this.sendData(cmd);
         },
       },
       switch_video: {
@@ -694,11 +915,7 @@ class KramerInstance extends InstanceBase {
             event.options.input,
             event.options.output
           );
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
-          }
+          this.sendData(cmd);
         },
       },
       switch_video_dynamic: {
@@ -727,11 +944,7 @@ class KramerInstance extends InstanceBase {
           }
           else {
             let cmd = makeCommand(this.SWITCH_VIDEO, input, output);
-            try {
-              this.socket.send(cmd);
-            } catch (error) {
-              this.log("error", `${error}`);
-            }
+            this.sendData(cmd);
           }
         },
       },
@@ -763,11 +976,7 @@ class KramerInstance extends InstanceBase {
           }
           else {
             let cmd = makeCommand(this.SWITCH_AUDIO, input, output);
-            try {
-              this.socket.send(cmd);
-            } catch (error) {
-              this.log("error", `${error}`);
-            }
+            this.sendData(cmd);
           }
         },
       },
@@ -784,11 +993,7 @@ class KramerInstance extends InstanceBase {
         ],
         callback: async (event) => {
           let cmd = makeCommand(this.RECALL_SETUP, event.options.setup, 0);
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
-          }
+          this.sendData(cmd);
         },
       },
       store_setup: {
@@ -808,11 +1013,7 @@ class KramerInstance extends InstanceBase {
             event.options.setup,
             0 /* STORE */
           );
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
-          }
+          this.sendData(cmd);
         },
       },
       delete_setup: {
@@ -834,11 +1035,7 @@ class KramerInstance extends InstanceBase {
             event.options.setup,
             1 /* DELETE */
           );
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
-          }
+          this.sendData(cmd);
         },
       },
       front_panel: {
@@ -857,11 +1054,7 @@ class KramerInstance extends InstanceBase {
         ],
         callback: async (event) => {
           let cmd = makeCommand(this.FRONT_PANEL, event.options.status, 0);
-          try {
-            this.socket.send(cmd);
-          } catch (error) {
-            this.log("error", `${error}`);
-          }
+          this.sendData(cmd);
         },
       },
     });
