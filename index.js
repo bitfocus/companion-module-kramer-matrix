@@ -228,12 +228,12 @@ class KramerInstance extends InstanceBase {
           hexMes += (data[i].toString(16) + ',');
         }
         hexMes += data[3].toString(16);
-        this.log('debug', 'Sending Protocol 2000: ' + hexMes);
+        this.log('debug', 'TXD Protocol 2000: ' + hexMes);
 
         break;
 
       case this.PROTOCOL_3000:
-        this.log("debug", `Sending Protocol 3000: ${data}`);
+        this.log("debug", `TXD Protocol 3000: ${data}`);
 
         break;
     }
@@ -329,7 +329,7 @@ class KramerInstance extends InstanceBase {
             }
             cmdstring += (Number(chunk[3]));
             
-            this.log('debug', 'Received Protocol 2000 data: ' + cmdstring);
+            this.log('debug', 'RXD Protocol 2000 data: ' + cmdstring);
             this.receivedData2000(chunk);
           }
           break;
@@ -338,7 +338,7 @@ class KramerInstance extends InstanceBase {
           // data may come in as a multiline response to the request. Handle
           //  each line separately.
           // TODO: Add support for commands (e.g. HELP) returning multi-line responses
-          this.log('debug', 'Received Protocol 3000 data: ' + data);
+          this.log('debug', 'RXD Protocol 3000: ' + data);
           data = data.toString().split("\r\n");
 
           for (var i = 0; i < data.length; i++) {
