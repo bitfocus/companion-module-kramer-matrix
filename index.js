@@ -92,7 +92,6 @@ class KramerInstance extends InstanceBase {
     }
 
     this.init_connection();
-    this.requestMatrixInformation();
   }
 
   /**
@@ -270,6 +269,9 @@ class KramerInstance extends InstanceBase {
           this.socket = new UDPHelper(this.config.host, 50000);
           this.updateStatus("ok");
           this.log("info", "init_connection: Connected (UDP)");
+
+          // Request Matrix information when the UDP connection has been established.
+          this.requestMatrixInformation();
           break;
       }
 
@@ -290,6 +292,9 @@ class KramerInstance extends InstanceBase {
         this.updateStatus("ok");
         this.log("info", "init_connection: Connected (TCP)");
         resolve();
+
+        // Request Matrix information when the TCP connection has been established.
+        this.requestMatrixInformation();
       });
 
       if (this.config.connectionProtocol === this.CONNECT_UDP) {
@@ -432,7 +437,7 @@ class KramerInstance extends InstanceBase {
 
     switch (response[1]) {
       case "MODEL":
-        let match = data.match(/[A-Z]+-\d+/);
+        let match = data.match(/[A-Z]+-[A-Z0-9]+/);
         this.matrixModel = match[0];
         if (match) {
           this.log("debug", `Model: ${this.matrixModel}`);
