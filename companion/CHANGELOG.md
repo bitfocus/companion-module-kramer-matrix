@@ -15,4 +15,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Releases prior to 2.1.2 are not documented here._
 
-[Unreleased]: https://github.com/bitfocus/companion-module-obs-studio/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/bitfocus/companion-module-kramer-matrix/compare/v2.1.1...HEAD
