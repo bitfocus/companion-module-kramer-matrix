@@ -117,13 +117,13 @@ class KramerInstance extends InstanceBase {
 
     // If any of the values are '0' then attempt to auto-detect:
     let detectCapabilities = [];
-    if (config.inputCount == 0) {
+    if (config.inputCount === 0) {
       detectCapabilities.push(this.CAPS_VIDEO_INPUTS);
     }
-    if (config.outputCount == 0) {
+    if (config.outputCount === 0) {
       detectCapabilities.push(this.CAPS_VIDEO_OUTPUTS);
     }
-    if (config.setupsCount == 0) {
+    if (config.setupsCount === 0) {
       detectCapabilities.push(this.CAPS_SETUPS);
     }
 
