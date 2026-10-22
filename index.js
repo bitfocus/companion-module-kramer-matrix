@@ -100,29 +100,30 @@ class KramerInstance extends InstanceBase {
    * @param config         The new config object
    */
   async configUpdated(config) {
-    this.config = config;
-
-    // Reconnect to the matrix if the IP or protocol changed
+    // Reconnect to the matrix if the host IP, Kramer protocol or transport protocol changed
     if (
       this.config.host !== config.host ||
       this.isConnected() === false ||
-      this.config.connectionProtocol !== config.connectionProtocol
+      this.config.connectionProtocol !== config.connectionProtocol ||
+      this.config.protocol !== config.protocol
     ) {
       // Have to set the new host IP/protocol before making the connection.
+      this.log('debug', 'Host config updated');
       this.config.host = config.host;
       this.config.connectionProtocol = config.connectionProtocol;
+      this.config.protocol = config.protocol;
       this.init_connection();
     }
 
     // If any of the values are '0' then attempt to auto-detect:
     let detectCapabilities = [];
-    if (this.config.inputCount === 0) {
+    if (config.inputCount == 0) {
       detectCapabilities.push(this.CAPS_VIDEO_INPUTS);
     }
-    if (this.config.outputCount === 0) {
+    if (config.outputCount == 0) {
       detectCapabilities.push(this.CAPS_VIDEO_OUTPUTS);
     }
-    if (this.config.setupsCount === 0) {
+    if (config.setupsCount == 0) {
       detectCapabilities.push(this.CAPS_SETUPS);
     }
 
@@ -244,6 +245,7 @@ class KramerInstance extends InstanceBase {
    * Connect to the matrix over TCP port 5000 or UDP port 50000.
    */
   init_connection() {
+    this.log("debug", `init_connection()`);
     if (this.socket !== undefined) {
       this.socket.destroy();
       delete this.socket;
@@ -255,20 +257,22 @@ class KramerInstance extends InstanceBase {
 
     this.updateStatus("connecting");
 
+    this.log("debug", `Host: ${this.config.host}, Protocol: ${this.config.protocol}, UDP/TCP: ${this.config.connectionProtocol}`);
+
     this.PromiseConnected = new Promise((resolve, reject) => {
       switch (this.config.connectionProtocol) {
         case this.CONNECT_TCP:
-          this.log("info", `init_connection: ${this.config.host} via ${this.config.connectionProtocol} on port 5000`);
+          this.log("info", `Connecting to ${this.config.host} via ${this.config.connectionProtocol} on port 5000`);
           this.socket = new TCPHelper(this.config.host, 5000, {
             reconnect_interval: 5000,
           });
           break;
 
         case this.CONNECT_UDP:
-          this.log("info", `init_connection: ${this.config.host} via ${this.config.connectionProtocol} on port 50000`);
+          this.log("info", `Connecting to ${this.config.host} via ${this.config.connectionProtocol} on port 50000`);
           this.socket = new UDPHelper(this.config.host, 50000);
           this.updateStatus("ok");
-          this.log("info", "init_connection: Connected (UDP)");
+          this.log("info", "Connected (UDP) - OK");
 
           // Request Matrix information when the UDP connection has been established.
           this.requestMatrixInformation();
@@ -279,8 +283,7 @@ class KramerInstance extends InstanceBase {
         if (this.currentStatus !== "error") {
           // Only log the error if the module isn't already in this state.
           // This is to prevent spamming the log during reconnect failures.
-          this.log("debug", "Network error", err);
-          this.updateStatus("connection_failure", err);
+          this.updateStatus("connection_failure", err.message);
           this.log("error", `Network error: ${err.message}`);
         }
 
@@ -290,7 +293,7 @@ class KramerInstance extends InstanceBase {
       this.socket.on("connect", () => {
         // This event only fires for TCP connections.
         this.updateStatus("ok");
-        this.log("info", "init_connection: Connected (TCP)");
+        this.log("info", "Connected (TCP) - OK");
         resolve();
 
         // Request Matrix information when the TCP connection has been established.
@@ -392,6 +395,7 @@ class KramerInstance extends InstanceBase {
           // Update the actions now that the new capabilities have been stored.
           this.actions();
           this.saveConfig(this.config);
+          this.log("info", `Config saved.`);
         }
         break;
     }
@@ -481,6 +485,7 @@ class KramerInstance extends InstanceBase {
       // Update the actions now that the new capabilities have been stored.
       this.actions();
       this.saveConfig(this.config);
+      this.log("info", `Config saved.`);
     }
 
     // Log any error message e.g. ~01@ROUTE ERR 003 is Parameter out of range
