@@ -100,37 +100,45 @@ class KramerInstance extends InstanceBase {
    * @param config         The new config object
    */
   async configUpdated(config) {
+    this.log('debug', 'Updating config');
+
     // Reconnect to the matrix if the host IP, Kramer protocol or transport protocol changed
     if (
       this.config.host !== config.host ||
-      this.isConnected() === false ||
+      this.config.protocol !== config.protocol ||
       this.config.connectionProtocol !== config.connectionProtocol ||
-      this.config.protocol !== config.protocol
+      this.isConnected() === false
     ) {
       // Have to set the new host IP/protocol before making the connection.
-      this.log('debug', 'Host config updated');
       this.config.host = config.host;
-      this.config.connectionProtocol = config.connectionProtocol;
       this.config.protocol = config.protocol;
-      this.init_connection();
+      this.config.connectionProtocol = config.connectionProtocol;
+      this.log('debug', 'Reconnecting');
+      this.init_connection();  // TODO: Await needs to be added for the detectCapabilities to work
+    } else {
+      this.log('debug', 'Connection unchanged');
     }
+
+    this.config = config;
 
     // If any of the values are '0' then attempt to auto-detect:
     let detectCapabilities = [];
-    if (config.inputCount === 0) {
+    if ((this.config.inputCount == undefined || this.config.inputCount == '')) {
       detectCapabilities.push(this.CAPS_VIDEO_INPUTS);
     }
-    if (config.outputCount === 0) {
+    if ((this.config.outputCount == undefined || this.config.outputCount == '')) {
       detectCapabilities.push(this.CAPS_VIDEO_OUTPUTS);
     }
-    if (config.setupsCount === 0) {
+    if ((this.config.setupsCount == undefined || this.config.setupsCount == '')) {
       detectCapabilities.push(this.CAPS_SETUPS);
     }
 
-    if (this.PromiseConnected) {
+    if (this.PromiseConnected !== null) {
       this.PromiseConnected.then(() => {
-        // Once connected, check the capabilities of the matrix if needed.
-        this.detectCapabilities(detectCapabilities);
+        if (detectCapabilities.length !== 0) {
+          // Once connected, check the capabilities of the matrix if needed.
+          this.detectCapabilities(detectCapabilities);
+		    }
       }).catch((_) => {
         // Error while connecting. The error message is already logged, but Node requires
         //  the rejected promise to be handled.
@@ -148,6 +156,7 @@ class KramerInstance extends InstanceBase {
    * @param detectCapabilities     An array of capabilities to detect from the matrix
    */
   detectCapabilities(detectCapabilities) {
+    this.log('debug', 'Detecting Capabilities: ' + detectCapabilities.length);
     // Reset the counter
     this.capabilityWaitingResponsesCounter = 0;
 
