@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Reconnect is triggered when IP, protocol or port type is changed.
+- Reconnect is triggered when IP, Kramer protocol or transport protocol is changed.
 
 _Releases prior to 2.1.2 are not documented here._
 
