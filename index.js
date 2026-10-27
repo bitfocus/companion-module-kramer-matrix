@@ -192,15 +192,16 @@ class KramerInstance extends InstanceBase {
           // MODEL?
           // VERSION?
           // PROT-VER?
+          // NB: Consecutive Kramer Protocol 3000 commands require 200 ms between commands.
 
           let cmd = "#MODEL?\r";
           this.sendData(cmd);
 
-          cmd = "#VERSION?\r";
-          this.sendData(cmd);
+          //cmd = "#VERSION?\r";
+          //this.sendData(cmd);
 
-          cmd = "#PROT-VER?\r";
-          this.sendData(cmd);
+          //cmd = "#PROT-VER?\r";
+          //this.sendData(cmd);
 
           break;
       }
@@ -254,7 +255,6 @@ class KramerInstance extends InstanceBase {
    * Connect to the matrix over TCP port 5000 or UDP port 50000.
    */
   init_connection() {
-    this.log("debug", `init_connection()`);
     if (this.socket !== undefined) {
       this.socket.destroy();
       delete this.socket;
@@ -266,7 +266,7 @@ class KramerInstance extends InstanceBase {
 
     this.updateStatus("connecting");
 
-    this.log("debug", `Host: ${this.config.host}, Protocol: ${this.config.protocol}, UDP/TCP: ${this.config.connectionProtocol}`);
+    this.log("debug", `Host: ${this.config.host}, Kramer Protocol: ${this.config.protocol}, Protcol: ${this.config.connectionProtocol}`);
 
     this.PromiseConnected = new Promise((resolve, reject) => {
       switch (this.config.connectionProtocol) {
