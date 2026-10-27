@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added CHANGELOG.md.
+- Added dependabot.yml.
+
 ### Fixed
 
 _Releases prior to 2.1.2 are not documented here._
