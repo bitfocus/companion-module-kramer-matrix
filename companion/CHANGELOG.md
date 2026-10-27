@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CHANGELOG.md
+- dependabot.yml
+- Debug printouts when config is changed.
+
 ### Changed
 
-- Added CHANGELOG.md.
-- Added dependabot.yml.
-
 ### Fixed
+
+- Reconnect is triggered when IP, protocol or port type is changed.
 
 _Releases prior to 2.1.2 are not documented here._
 
