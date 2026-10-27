@@ -266,7 +266,7 @@ class KramerInstance extends InstanceBase {
 
     this.updateStatus("connecting");
 
-    this.log("debug", `Host: ${this.config.host}, Kramer Protocol: ${this.config.protocol}, Protcol: ${this.config.connectionProtocol}`);
+    this.log("debug", `Host: ${this.config.host}, Kramer Protocol: ${this.config.protocol}, Transport Protocol: ${this.config.connectionProtocol}`);
 
     this.PromiseConnected = new Promise((resolve, reject) => {
       switch (this.config.connectionProtocol) {
