@@ -1066,8 +1066,8 @@ class KramerInstance extends InstanceBase {
             id: "status",
             default: "0",
             choices: [
-              { id: "0", name: "Unlock" },
-              { id: "1", name: "Lock" },
+              { id: "0", label: "Unlock" },
+              { id: "1", label: "Lock" },
             ],
           },
         ],
